@@ -20,8 +20,8 @@ function formatDate(iso) {
   return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function render() {
-  const trips = Store.listTrips();
+async function render() {
+  const trips = await Store.listTrips();
   $tripList.innerHTML = '';
   $emptyState.hidden = trips.length > 0;
 
@@ -87,12 +87,19 @@ $newTripModal.addEventListener('click', (e) => {
   if (e.target === $newTripModal) closeNewTripModal();
 });
 
-$confirmNewTrip.addEventListener('click', () => {
+$confirmNewTrip.addEventListener('click', async () => {
   const title = $tripTitle.value.trim();
   const start = $tripStart.value;
-  const trip = Store.createTrip({ title, start });
-  closeNewTripModal();
-  window.location.href = 'trip.html?id=' + encodeURIComponent(trip.id);
+  $confirmNewTrip.disabled = true;
+  try {
+    const trip = await Store.createTrip({ title, start });
+    closeNewTripModal();
+    window.location.href = 'trip.html?id=' + encodeURIComponent(trip.id);
+  } catch (e) {
+    alert('Reise konnte nicht angelegt werden: ' + e.message);
+  } finally {
+    $confirmNewTrip.disabled = false;
+  }
 });
 
 $cancelDelete.addEventListener('click', closeDeleteModal);
@@ -100,9 +107,13 @@ $deleteModal.addEventListener('click', (e) => {
   if (e.target === $deleteModal) closeDeleteModal();
 });
 
-$confirmDelete.addEventListener('click', () => {
+$confirmDelete.addEventListener('click', async () => {
   if (tripPendingDelete) {
-    Store.deleteTrip(tripPendingDelete.id);
+    try {
+      await Store.deleteTrip(tripPendingDelete.id);
+    } catch (e) {
+      alert('Reise konnte nicht gelöscht werden: ' + e.message);
+    }
   }
   closeDeleteModal();
   render();

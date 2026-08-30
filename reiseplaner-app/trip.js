@@ -13,11 +13,7 @@ if (!tripId) {
   window.location.href = 'index.html';
 }
 
-let state = Store.getTripState(tripId);
-if (!state) {
-  window.location.href = 'index.html';
-}
-
+let state = null;
 let dirty = false;
 let saving = false;
 
@@ -186,10 +182,13 @@ async function persist() {
   if (saving || !dirty) return;
   saving = true;
   setStatus();
-  Store.saveTripState(tripId, state);
-  await new Promise((r) => setTimeout(r, 150));
+  try {
+    await Store.saveTripState(tripId, state);
+    dirty = false;
+  } catch (e) {
+    alert('Speichern fehlgeschlagen: ' + e.message);
+  }
   saving = false;
-  dirty = false;
   setStatus();
 }
 
@@ -202,4 +201,17 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
-render();
+async function init() {
+  try {
+    state = await Store.getTripState(tripId);
+  } catch (e) {
+    alert('Reise konnte nicht geladen werden: ' + e.message);
+  }
+  if (!state) {
+    window.location.href = 'index.html';
+    return;
+  }
+  render();
+}
+
+init();

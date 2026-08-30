@@ -1,69 +1,85 @@
-// Zentrale Datenschicht. Aktuell localStorage-basiert; kann später durch
-// einen Supabase-Backend-Adapter mit identischer Schnittstelle ersetzt
-// werden, ohne dass index.html/trip.html geändert werden müssen.
+// Zentrale Datenschicht. Nutzt Supabase (Postgres über REST) als
+// gemeinsam geteilten Speicher, damit alle mit dem Link denselben
+// Stand sehen und bearbeiten können (kein Login nötig).
 
-const TRIPS_INDEX_KEY = 'reiseplaner.trips';
-const TRIP_DATA_PREFIX = 'reiseplaner.trip.';
+const SUPABASE_URL = 'https://gnjpwehxwhngqybazytc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_fNPMfNKMepaI0t-PwAqGDA_wPolt1rm';
 
 function uid() {
   return 't_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
 
-function readIndex() {
-  try {
-    const raw = localStorage.getItem(TRIPS_INDEX_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    return [];
+async function rest(path, options = {}) {
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error('Supabase-Fehler ' + res.status + ': ' + text);
   }
-}
-
-function writeIndex(list) {
-  localStorage.setItem(TRIPS_INDEX_KEY, JSON.stringify(list));
+  if (res.status === 204) return null;
+  return res.json();
 }
 
 const Store = {
   // Liste aller Reisen (Metadaten für die Übersicht)
-  listTrips() {
-    return readIndex().sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+  async listTrips() {
+    const rows = await rest(
+      'trips?select=id,title,start,"end",updated_at,created_at&order=updated_at.desc.nullslast'
+    );
+    return rows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      start: r.start || '',
+      updatedAt: r.updated_at,
+      createdAt: r.created_at
+    }));
   },
 
-  createTrip({ title, start }) {
+  async createTrip({ title, start }) {
     const id = uid();
-    const now = new Date().toISOString();
-    const meta = { id, title: title || 'Neue Reise', start: start || '', updatedAt: now, createdAt: now };
-    const list = readIndex();
-    list.push(meta);
-    writeIndex(list);
-    const initialState = { id, title: meta.title, start: meta.start, days: {} };
-    localStorage.setItem(TRIP_DATA_PREFIX + id, JSON.stringify(initialState));
-    return meta;
+    const row = {
+      id,
+      title: title || 'Neue Reise',
+      start: start || null,
+      end: null,
+      days: {}
+    };
+    const [created] = await rest('trips', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify(row)
+    });
+    return { id: created.id, title: created.title, start: created.start || '', updatedAt: created.updated_at };
   },
 
-  deleteTrip(id) {
-    const list = readIndex().filter((t) => t.id !== id);
-    writeIndex(list);
-    localStorage.removeItem(TRIP_DATA_PREFIX + id);
+  async deleteTrip(id) {
+    await rest('trips?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
   },
 
-  getTripState(id) {
-    try {
-      const raw = localStorage.getItem(TRIP_DATA_PREFIX + id);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) {
-      return null;
-    }
+  async getTripState(id) {
+    const rows = await rest('trips?id=eq.' + encodeURIComponent(id) + '&select=*');
+    if (!rows.length) return null;
+    const r = rows[0];
+    return { id: r.id, title: r.title || '', start: r.start || '', end: r.end || '', days: r.days || {} };
   },
 
-  saveTripState(id, state) {
-    localStorage.setItem(TRIP_DATA_PREFIX + id, JSON.stringify(state));
-    const list = readIndex();
-    const meta = list.find((t) => t.id === id);
-    if (meta) {
-      meta.title = state.title || meta.title;
-      meta.start = state.start || meta.start;
-      meta.updatedAt = new Date().toISOString();
-      writeIndex(list);
-    }
+  async saveTripState(id, state) {
+    await rest('trips?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH',
+      body: JSON.stringify({
+        title: state.title || '',
+        start: state.start || null,
+        end: state.end || null,
+        days: state.days || {},
+        updated_at: new Date().toISOString()
+      })
+    });
   }
 };
