@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reiseplaner</title>
+<meta name="description" content="Reisen gemeinsam planen">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f172a">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="topbar">
+    <h1>Meine Reisen</h1>
+  </div>
+
+  <div class="container">
+    <div id="tripList" class="trip-list"></div>
+    <div id="emptyState" class="empty-state" hidden>
+      Noch keine Reise angelegt.<br>Tippe auf + um loszulegen.
+    </div>
+  </div>
+
+  <button class="fab" id="newTripBtn" aria-label="Neue Reise">+</button>
+
+  <div class="modal-backdrop" id="newTripModal" hidden>
+    <div class="modal">
+      <h2>Neue Reise anlegen</h2>
+      <div class="field">
+        <label for="tripTitle">Titel</label>
+        <input id="tripTitle" type="text" placeholder="z. B. Italien 2027">
+      </div>
+      <div class="field">
+        <label for="tripStart">Startdatum</label>
+        <input id="tripStart" type="date">
+      </div>
+      <div class="modal-actions">
+        <button class="secondary" id="cancelNewTrip">Abbrechen</button>
+        <button class="primary" id="confirmNewTrip">Anlegen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="deleteModal" hidden>
+    <div class="modal">
+      <h2>Reise löschen?</h2>
+      <p id="deleteTripName" style="color:var(--text-dim);"></p>
+      <div class="modal-actions">
+        <button class="secondary" id="cancelDelete">Abbrechen</button>
+        <button class="danger" id="confirmDelete">Löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="store.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
