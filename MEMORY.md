@@ -26,6 +26,17 @@
 - Installierbar auf iPhone/iPad: Safari → Teilen-Symbol → "Zum
   Home-Bildschirm hinzufügen" (läuft danach im Vollbild wie eine native
   App)
+- **Passwortschirm beim Öffnen** (`auth.js`, als erstes Script in
+  `index.html`/`trip.html` eingebunden): fest hinterlegtes Passwort
+  (`APP_PASSWORD` in `auth.js`), Eingabe wird nach Erfolg in
+  `localStorage` (`reiseplaner_unlocked`) gemerkt, danach kein erneutes
+  Abfragen auf dem Gerät. **Nur Sichtschutz, keine echte Sicherheit** —
+  das Passwort steht im Klartext im JS-Code, und die Supabase-Tabelle
+  bleibt über den im Frontend sichtbaren API-Key weiterhin direkt les-
+  und schreibbar (siehe Backend-Abschnitt). Reicht, um Zufallsbesucher/
+  Suchmaschinen fernzuhalten, nicht um die Reisedaten wirklich
+  abzusichern. Passwort ändern: einfach `APP_PASSWORD` in `auth.js`
+  anpassen und committen.
 
 ## Backend: Supabase (aktiv, seit diesem Durchlauf)
 
