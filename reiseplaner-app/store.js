@@ -4,6 +4,9 @@
 
 const SUPABASE_URL = 'https://gnjpwehxwhngqybazytc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_fNPMfNKMepaI0t-PwAqGDA_wPolt1rm';
+// Dev-Umgebung: eigene Tabelle, damit Testdaten nie mit den echten
+// Reisedaten (Tabelle "trips" in der Produktion) vermischt werden.
+const TABLE = 'trips_dev';
 
 function uid() {
   return 't_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
@@ -31,7 +34,7 @@ const Store = {
   // Liste aller Reisen (Metadaten für die Übersicht)
   async listTrips() {
     const rows = await rest(
-      'trips?select=id,title,start,"end",updated_at,created_at&order=updated_at.desc.nullslast'
+      TABLE + '?select=id,title,start,"end",updated_at,created_at&order=updated_at.desc.nullslast'
     );
     return rows.map((r) => ({
       id: r.id,
@@ -51,7 +54,7 @@ const Store = {
       end: null,
       days: {}
     };
-    const [created] = await rest('trips', {
+    const [created] = await rest(TABLE, {
       method: 'POST',
       headers: { Prefer: 'return=representation' },
       body: JSON.stringify(row)
@@ -60,18 +63,18 @@ const Store = {
   },
 
   async deleteTrip(id) {
-    await rest('trips?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
+    await rest(TABLE + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE' });
   },
 
   async getTripState(id) {
-    const rows = await rest('trips?id=eq.' + encodeURIComponent(id) + '&select=*');
+    const rows = await rest(TABLE + '?id=eq.' + encodeURIComponent(id) + '&select=*');
     if (!rows.length) return null;
     const r = rows[0];
     return { id: r.id, title: r.title || '', start: r.start || '', end: r.end || '', days: r.days || {} };
   },
 
   async saveTripState(id, state) {
-    await rest('trips?id=eq.' + encodeURIComponent(id), {
+    await rest(TABLE + '?id=eq.' + encodeURIComponent(id), {
       method: 'PATCH',
       body: JSON.stringify({
         title: state.title || '',
