@@ -14,6 +14,7 @@ const $settingsBtn = document.getElementById('settingsBtn');
 const $passwordModal = document.getElementById('passwordModal');
 const $oldPassword = document.getElementById('oldPassword');
 const $newPassword = document.getElementById('newPassword');
+const $newPasswordRepeat = document.getElementById('newPasswordRepeat');
 const $passwordError = document.getElementById('passwordError');
 const $passwordSuccess = document.getElementById('passwordSuccess');
 const $cancelPassword = document.getElementById('cancelPassword');
@@ -130,6 +131,7 @@ $confirmDelete.addEventListener('click', async () => {
 function openPasswordModal() {
   $oldPassword.value = '';
   $newPassword.value = '';
+  $newPasswordRepeat.value = '';
   $passwordError.hidden = true;
   $passwordSuccess.hidden = true;
   $passwordModal.hidden = false;
@@ -149,6 +151,13 @@ $passwordModal.addEventListener('click', (e) => {
 $confirmPassword.addEventListener('click', async () => {
   $passwordError.hidden = true;
   $passwordSuccess.hidden = true;
+
+  if ($newPassword.value !== $newPasswordRepeat.value) {
+    $passwordError.textContent = 'Die beiden neuen Passwörter stimmen nicht überein.';
+    $passwordError.hidden = false;
+    return;
+  }
+
   $confirmPassword.disabled = true;
   try {
     const result = await changeAppPassword($oldPassword.value, $newPassword.value);
@@ -156,6 +165,7 @@ $confirmPassword.addEventListener('click', async () => {
       $passwordSuccess.hidden = false;
       $oldPassword.value = '';
       $newPassword.value = '';
+      $newPasswordRepeat.value = '';
     } else {
       $passwordError.textContent =
         result.error === 'too_short'
