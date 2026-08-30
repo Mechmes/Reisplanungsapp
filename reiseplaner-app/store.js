@@ -4,10 +4,8 @@
 
 const SUPABASE_URL = 'https://gnjpwehxwhngqybazytc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_fNPMfNKMepaI0t-PwAqGDA_wPolt1rm';
-// Dev-Umgebung: eigene Tabelle, damit Testdaten nie mit den echten
-// Reisedaten (Tabelle "trips" in der Produktion) vermischt werden.
-const TABLE = 'trips_dev';
-const SETTINGS_TABLE = 'app_settings_dev';
+const TABLE = 'trips';
+const SETTINGS_TABLE = 'app_settings';
 
 function uid() {
   return 't_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
