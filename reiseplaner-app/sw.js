@@ -1,4 +1,4 @@
-const CACHE_NAME = 'reiseplaner-v1';
+const CACHE_NAME = 'reiseplaner-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -27,19 +27,22 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
+  const req = event.request;
+  if (req.method !== 'GET') return;
+
+  // Fremde Anfragen (z. B. Supabase) niemals cachen/abfangen - immer live.
+  if (new URL(req.url).origin !== self.location.origin) return;
+
+  // App-Dateien: network-first, damit Updates sofort ankommen; Cache nur als Offline-Fallback.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || fetchPromise;
-    })
+    fetch(req)
+      .then((response) => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(req))
   );
 });
