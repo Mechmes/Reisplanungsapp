@@ -1,12 +1,33 @@
 # Reiseplaner PWA — Projektstand & Grundprinzip
 
-## Status: FERTIG UND LIVE
+> **Diese Datei ist das Gedächtnis des Projekts.** Sie liegt im Repo
+> `Mechmes/Reisplanungsapp` auf Branch `main` als `MEMORY.md`. Jede
+> Claude-Session mit Zugriff auf dieses Repo (egal in welchem Chat) kann
+> sie lesen und sollte sie bei größeren Änderungen aktualisieren, damit
+> die Arbeit chat-übergreifend nahtlos weitergeht. Stand zuletzt
+> aktualisiert: 30.08.2026.
 
-**Live-URL:** https://mechmes.github.io/Reisplanungsapp/
-**Repo:** `Mechmes/Reisplanungsapp` (öffentlich), Branch `main`
-**Deployment:** automatisch via GitHub Actions bei jedem Push auf `main`
-  (`.github/workflows/pages.yml`, deployt Ordner `reiseplaner-app/` auf
-  GitHub Pages, Pages-Source ist auf "GitHub Actions" gestellt)
+## Status: PRODUKTION LIVE + EIGENE DEV-UMGEBUNG EINGERICHTET
+
+**Produktion (main):** https://mechmes.github.io/Reisplanungsapp/
+**Testumgebung (dev):** https://mechmes.github.io/Reisplanungsapp/dev/
+**Repo:** `Mechmes/Reisplanungsapp` (öffentlich)
+**Branches:**
+- `main` — Produktion, das was echte Nutzer sehen. **Nur bewusst per
+  Merge von `dev` aktualisieren**, nicht direkt draufcommitten.
+- `dev` — Entwicklungs-/Test-Branch. Hier finden alle neuen Features,
+  Experimente und Fixes zuerst statt.
+**Deployment:** ein einziger Workflow
+  (`.github/workflows/pages.yml`) baut bei jedem Push auf `main`
+  **oder** `dev` (wenn sich etwas unter `reiseplaner-app/` ändert) beide
+  Branches zusammen: Inhalt von `main` → Website-Root, Inhalt von `dev`
+  → Unterordner `/dev/`. Dadurch bleiben beide URLs unabhängig
+  voneinander aktuell, ohne dass man zwei Pages-Sites braucht.
+  Pages-Source ist auf "GitHub Actions" gestellt (Settings → Pages →
+  Source). Die `github-pages`-Environment (Settings → Environments)
+  muss beide Branches (`main` und `dev`) in "Deployment branches and
+  tags" erlaubt haben, sonst schlägt der Workflow mit "Branch not
+  allowed to deploy" fehl.
 
 ## Was die App kann
 
@@ -27,24 +48,56 @@
   Home-Bildschirm hinzufügen" (läuft danach im Vollbild wie eine native
   App)
 
-## Backend: Supabase (aktiv, seit diesem Durchlauf)
+## Backend: Supabase (gemeinsames Projekt, getrennte Tabellen für Prod/Dev)
 
 - Projekt-URL: `https://gnjpwehxwhngqybazytc.supabase.co`
 - API-Key-Typ: neuer "publishable" Key (`sb_publishable_...`), fest in
   `store.js` als `SUPABASE_URL`/`SUPABASE_KEY` hinterlegt (unkritisch,
   da App bewusst ohne Login/öffentlich zugänglich ist)
-- Tabelle `trips`: `id text PK, title text, start date, "end" date,
-  days jsonb, created_at, updated_at` — Setup-SQL liegt als
-  `supabase_setup.sql` vor (falls Tabelle je neu aufgesetzt werden muss)
-- Row Level Security ist **aktiv, aber komplett offen** (`using(true)`
-  für select/insert/update/delete) — bewusst so gewählt, weil kein
-  Login vorgesehen ist. Das bedeutet: theoretisch kann jeder mit dem
-  API-Key (der im Frontend-Code sichtbar ist) beliebig lesen/schreiben.
-  Für dieses Projekt (Freunde/Familie planen gemeinsam) akzeptiert.
+- **Zwei Tabellen im selben Supabase-Projekt**, gleiches Schema
+  (`id text PK, title text, start date, "end" date, days jsonb,
+  created_at, updated_at`):
+  - `trips` — echte Produktionsdaten, genutzt vom `main`-Branch
+    (Setup-SQL: `supabase_setup.sql`)
+  - `trips_dev` — isolierte Testdaten, genutzt vom `dev`-Branch
+    (Setup-SQL: `supabase_setup_dev.sql`)
+  - In `store.js` steuert die Konstante `TABLE` (`'trips'` auf `main`,
+    `'trips_dev'` auf `dev`), welche Tabelle verwendet wird — das ist
+    der **einzige Unterschied** zwischen den beiden Branch-Versionen
+    von `store.js`. Beim Mergen von `dev` nach `main` **immer** darauf
+    achten, dass `TABLE` auf `main` wieder `'trips'` bleibt (nicht die
+    Dev-Zeile versehentlich mit rüberziehen)!
+- Row Level Security ist auf **beiden** Tabellen aktiv, aber komplett
+  offen (`using(true)` für select/insert/update/delete) — bewusst so
+  gewählt, weil kein Login vorgesehen ist. Das bedeutet: theoretisch
+  kann jeder mit dem API-Key (im Frontend-Code sichtbar) beliebig
+  lesen/schreiben. Für dieses Projekt (Freunde/Familie planen
+  gemeinsam) akzeptiert.
 - `store.js` kapselt alle Zugriffe (`listTrips`, `createTrip`,
   `deleteTrip`, `getTripState`, `saveTripState`) als **async**-Funktionen
   über die PostgREST-API von Supabase (`fetch` mit `apikey`/
   `Authorization`-Header). `app.js`/`trip.js` rufen sie mit `await` auf.
+- Service-Worker-Cache-Namen sind ebenfalls pro Branch getrennt
+  (`main`: `reiseplaner-v2`, `dev`: `reiseplaner-dev-v1`), da
+  Cache Storage sich nur nach Origin richtet — nicht nach Pfad/Scope
+  — und beide Branches unter derselben Domain laufen.
+
+## Entwicklungs-Workflow (ab jetzt gültig)
+
+1. Änderungen **immer zuerst auf `dev`** machen (App-Code liegt unter
+   `reiseplaner-app/`), committen, auf `origin/dev` pushen.
+2. Der Workflow deployt automatisch nach
+   `https://mechmes.github.io/Reisplanungsapp/dev/` — dort testen
+   (eigene Testdaten in `trips_dev`, beeinflusst niemanden).
+3. Erst wenn eine Änderung freigegeben ist: bewusst `dev` → `main`
+   mergen (z. B. `git checkout main && git merge dev`), dabei prüfen,
+   dass in `store.js` `TABLE = 'trips'` bleibt und in `sw.js` der
+   Cache-Name für Produktion (`reiseplaner-v2`, ggf. hochzählen) steht,
+   dann auf `origin/main` pushen → Produktion aktualisiert sich
+   automatisch.
+4. Eine künftige Session/ein künftiger Chat kann direkt mit "arbeite
+   auf dev weiter an X" starten, ohne dass dieser Kontext erneut
+   erklärt werden muss — diese Datei reicht als Gedächtnis.
 
 ## Wichtige Lessons Learned aus diesem Durchlauf
 
