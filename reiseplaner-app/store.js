@@ -28,7 +28,8 @@ async function rest(path, options = {}) {
     throw new Error('Supabase-Fehler ' + res.status + ': ' + text);
   }
   if (res.status === 204) return null;
-  return res.json();
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
 const Store = {
