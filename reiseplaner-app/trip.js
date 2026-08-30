@@ -3,6 +3,7 @@ const tripId = params.get('id');
 
 const $titleInput = document.getElementById('titleInput');
 const $startInput = document.getElementById('startInput');
+const $endInput = document.getElementById('endInput');
 const $daysContainer = document.getElementById('daysContainer');
 const $addDayBtn = document.getElementById('addDayBtn');
 const $saveBtn = document.getElementById('saveBtn');
@@ -40,6 +41,33 @@ function dayKeys() {
   return Object.keys(state.days || {}).sort((a, b) => Number(a) - Number(b));
 }
 
+function dateForDay(key) {
+  if (!state.start) return '';
+  const d = new Date(state.start + 'T00:00:00');
+  d.setDate(d.getDate() + (Number(key) - 1));
+  return d.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function diffDaysInclusive(start, end) {
+  const a = new Date(start + 'T00:00:00');
+  const b = new Date(end + 'T00:00:00');
+  const days = Math.round((b - a) / 86400000) + 1;
+  return days > 0 ? days : 0;
+}
+
+function syncDaysFromDates() {
+  if (!state.start || !state.end) return;
+  const count = diffDaysInclusive(state.start, state.end);
+  if (!count) return;
+  state.days = state.days || {};
+  for (let i = 1; i <= count; i++) {
+    if (!(i in state.days)) state.days[i] = '';
+  }
+  Object.keys(state.days).forEach((key) => {
+    if (Number(key) > count) delete state.days[key];
+  });
+}
+
 function renderDays() {
   $daysContainer.innerHTML = '';
   dayKeys().forEach((key) => {
@@ -52,7 +80,8 @@ function renderDays() {
     header.style.alignItems = 'center';
 
     const h3 = document.createElement('h3');
-    h3.textContent = 'Tag ' + key;
+    const dateLabel = dateForDay(key);
+    h3.textContent = 'Tag ' + key + (dateLabel ? ' · ' + dateLabel : '');
 
     const delBtn = document.createElement('button');
     delBtn.className = 'icon-btn';
@@ -83,6 +112,7 @@ function renderDays() {
 function render() {
   $titleInput.value = state.title || '';
   $startInput.value = state.start || '';
+  $endInput.value = state.end || '';
   renderDays();
   setStatus();
 }
@@ -94,7 +124,16 @@ $titleInput.addEventListener('input', () => {
 
 $startInput.addEventListener('input', () => {
   state.start = $startInput.value;
+  syncDaysFromDates();
   markDirty();
+  renderDays();
+});
+
+$endInput.addEventListener('input', () => {
+  state.end = $endInput.value;
+  syncDaysFromDates();
+  markDirty();
+  renderDays();
 });
 
 $addDayBtn.addEventListener('click', () => {
