@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reise (Test)</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f172a">
+<link rel="stylesheet" href="style.css">
+<style>
+  .day-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+  .day-block h3 { margin: 0 0 8px; font-size: 15px; }
+  .day-block textarea { width: 100%; min-height: 70px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text); padding: 10px; font-size: 15px; font-family: inherit; resize: vertical; }
+  .trip-title-input { width: 100%; font-size: 20px; font-weight: 700; border: none; background: transparent; color: var(--text); padding: 0; margin-bottom: 4px; }
+  .add-day-btn { width: 100%; padding: 12px; border-radius: 10px; border: 1px dashed var(--border); background: transparent; color: var(--text-dim); font-size: 15px; margin-top: 4px; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <a href="index.html" class="back-link">‹ Reisen</a>
+  </div>
+
+  <div class="container">
+    <input class="trip-title-input" id="titleInput" type="text" placeholder="Titel der Reise">
+    <div class="field" style="margin-top:10px;">
+      <label for="startInput">Startdatum</label>
+      <input id="startInput" type="date">
+    </div>
+
+    <div id="daysContainer" style="margin-top:20px;"></div>
+    <button class="add-day-btn" id="addDayBtn">+ Tag hinzufügen</button>
+  </div>
+
+  <div class="save-bar">
+    <span class="status-text" id="statusText">Gespeichert</span>
+    <button id="saveBtn" disabled>Speichern</button>
+  </div>
+
+  <script src="store.js"></script>
+  <script src="trip.js"></script>
+</body>
+</html>
