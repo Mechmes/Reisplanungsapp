@@ -1,13 +1,27 @@
 // Einfacher Passwortschutz (Variante 1: Frontend-Gate, keine echte Sicherheit,
 // nur um Zufallsbesucher fernzuhalten — Supabase-Daten sind weiterhin per
 // API-Key erreichbar, siehe MEMORY.md).
+//
+// Das aktuelle Passwort liegt in Supabase (Tabelle app_settings/app_settings_dev,
+// siehe store.js: Store.getPassword/setPassword), damit es über
+// "Passwort ändern" in der App geändert werden kann, ohne Code anzufassen.
+// FALLBACK_PASSWORD greift nur, wenn Supabase gerade nicht erreichbar ist.
 (function () {
-  var APP_PASSWORD = 'reise2027';
   var STORAGE_KEY = 'reiseplaner_unlocked';
+  var FALLBACK_PASSWORD = 'reise2027';
 
   if (localStorage.getItem(STORAGE_KEY) === 'yes') return;
 
   document.documentElement.style.visibility = 'hidden';
+
+  async function currentPassword() {
+    try {
+      const p = await Store.getPassword();
+      return p || FALLBACK_PASSWORD;
+    } catch (e) {
+      return FALLBACK_PASSWORD;
+    }
+  }
 
   function showGate() {
     document.documentElement.style.visibility = '';
@@ -27,8 +41,9 @@
     var input = document.getElementById('authInput');
     var error = document.getElementById('authError');
 
-    function tryUnlock() {
-      if (input.value === APP_PASSWORD) {
+    async function tryUnlock() {
+      var pw = await currentPassword();
+      if (input.value === pw) {
         localStorage.setItem(STORAGE_KEY, 'yes');
         overlay.remove();
       } else {
@@ -51,3 +66,17 @@
     showGate();
   }
 })();
+
+// Wird von der Passwort-ändern-UI (app.js) aufgerufen.
+async function changeAppPassword(oldPassword, newPassword) {
+  const current = await Store.getPassword();
+  const effectiveCurrent = current || 'reise2027';
+  if (oldPassword !== effectiveCurrent) {
+    return { ok: false, error: 'wrong_password' };
+  }
+  if (!newPassword || newPassword.length < 4) {
+    return { ok: false, error: 'too_short' };
+  }
+  await Store.setPassword(newPassword);
+  return { ok: true };
+}

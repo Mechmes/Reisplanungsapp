@@ -15,6 +15,7 @@
 <body>
   <div class="topbar">
     <h1>Meine Reisen</h1>
+    <button class="icon-btn" id="settingsBtn" aria-label="Einstellungen">⚙</button>
   </div>
 
   <div class="container">
@@ -44,6 +45,26 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="passwordModal" hidden>
+    <div class="modal">
+      <h2>Passwort ändern</h2>
+      <div class="field">
+        <label for="oldPassword">Aktuelles Passwort</label>
+        <input id="oldPassword" type="password" autocomplete="current-password">
+      </div>
+      <div class="field">
+        <label for="newPassword">Neues Passwort</label>
+        <input id="newPassword" type="password" autocomplete="new-password">
+      </div>
+      <p id="passwordError" class="auth-error" hidden></p>
+      <p id="passwordSuccess" style="color:var(--text-dim);" hidden>Passwort geändert.</p>
+      <div class="modal-actions">
+        <button class="secondary" id="cancelPassword">Abbrechen</button>
+        <button class="primary" id="confirmPassword">Speichern</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="deleteModal" hidden>
     <div class="modal">
       <h2>Reise löschen?</h2>
@@ -55,8 +76,8 @@
     </div>
   </div>
 
-  <script src="auth.js"></script>
   <script src="store.js"></script>
+  <script src="auth.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

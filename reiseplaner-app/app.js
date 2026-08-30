@@ -10,6 +10,14 @@ const $deleteModal = document.getElementById('deleteModal');
 const $deleteTripName = document.getElementById('deleteTripName');
 const $cancelDelete = document.getElementById('cancelDelete');
 const $confirmDelete = document.getElementById('confirmDelete');
+const $settingsBtn = document.getElementById('settingsBtn');
+const $passwordModal = document.getElementById('passwordModal');
+const $oldPassword = document.getElementById('oldPassword');
+const $newPassword = document.getElementById('newPassword');
+const $passwordError = document.getElementById('passwordError');
+const $passwordSuccess = document.getElementById('passwordSuccess');
+const $cancelPassword = document.getElementById('cancelPassword');
+const $confirmPassword = document.getElementById('confirmPassword');
 
 let tripPendingDelete = null;
 
@@ -117,6 +125,50 @@ $confirmDelete.addEventListener('click', async () => {
   }
   closeDeleteModal();
   render();
+});
+
+function openPasswordModal() {
+  $oldPassword.value = '';
+  $newPassword.value = '';
+  $passwordError.hidden = true;
+  $passwordSuccess.hidden = true;
+  $passwordModal.hidden = false;
+  setTimeout(() => $oldPassword.focus(), 50);
+}
+
+function closePasswordModal() {
+  $passwordModal.hidden = true;
+}
+
+$settingsBtn.addEventListener('click', openPasswordModal);
+$cancelPassword.addEventListener('click', closePasswordModal);
+$passwordModal.addEventListener('click', (e) => {
+  if (e.target === $passwordModal) closePasswordModal();
+});
+
+$confirmPassword.addEventListener('click', async () => {
+  $passwordError.hidden = true;
+  $passwordSuccess.hidden = true;
+  $confirmPassword.disabled = true;
+  try {
+    const result = await changeAppPassword($oldPassword.value, $newPassword.value);
+    if (result.ok) {
+      $passwordSuccess.hidden = false;
+      $oldPassword.value = '';
+      $newPassword.value = '';
+    } else {
+      $passwordError.textContent =
+        result.error === 'too_short'
+          ? 'Neues Passwort muss mindestens 4 Zeichen haben.'
+          : 'Aktuelles Passwort ist falsch.';
+      $passwordError.hidden = false;
+    }
+  } catch (e) {
+    $passwordError.textContent = 'Fehler: ' + e.message;
+    $passwordError.hidden = false;
+  } finally {
+    $confirmPassword.disabled = false;
+  }
 });
 
 if ('serviceWorker' in navigator) {
