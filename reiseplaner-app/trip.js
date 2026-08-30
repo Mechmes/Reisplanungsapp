@@ -61,16 +61,31 @@ function syncDaysFromDates() {
   if (!count) return;
   state.days = state.days || {};
   for (let i = 1; i <= count; i++) {
-    if (!(i in state.days)) state.days[i] = '';
+    if (!(i in state.days)) state.days[i] = emptyDay();
   }
   Object.keys(state.days).forEach((key) => {
     if (Number(key) > count) delete state.days[key];
   });
 }
 
+function emptyDay() {
+  return { title: '', hotel: '', description: '' };
+}
+
+// Migriert alte Tage, die noch als reiner Text (statt Objekt) gespeichert sind.
+function normalizeDay(value) {
+  if (value && typeof value === 'object') {
+    return { title: value.title || '', hotel: value.hotel || '', description: value.description || '' };
+  }
+  return { title: '', hotel: '', description: value || '' };
+}
+
 function renderDays() {
   $daysContainer.innerHTML = '';
   dayKeys().forEach((key) => {
+    state.days[key] = normalizeDay(state.days[key]);
+    const day = state.days[key];
+
     const block = document.createElement('div');
     block.className = 'day-block';
 
@@ -94,17 +109,40 @@ function renderDays() {
 
     header.appendChild(h3);
     header.appendChild(delBtn);
+    block.appendChild(header);
 
-    const textarea = document.createElement('textarea');
-    textarea.placeholder = 'Programm, Notizen …';
-    textarea.value = state.days[key] || '';
-    textarea.addEventListener('input', () => {
-      state.days[key] = textarea.value;
+    const titleInput = document.createElement('input');
+    titleInput.type = 'text';
+    titleInput.className = 'day-field-title';
+    titleInput.placeholder = 'Titel';
+    titleInput.value = day.title;
+    titleInput.addEventListener('input', () => {
+      day.title = titleInput.value;
       markDirty();
     });
+    block.appendChild(titleInput);
 
-    block.appendChild(header);
-    block.appendChild(textarea);
+    const hotelInput = document.createElement('input');
+    hotelInput.type = 'text';
+    hotelInput.className = 'day-field-hotel';
+    hotelInput.placeholder = 'Hotel';
+    hotelInput.value = day.hotel;
+    hotelInput.addEventListener('input', () => {
+      day.hotel = hotelInput.value;
+      markDirty();
+    });
+    block.appendChild(hotelInput);
+
+    const descTextarea = document.createElement('textarea');
+    descTextarea.className = 'day-field-description';
+    descTextarea.placeholder = 'Beschreibung, Programm, Notizen …';
+    descTextarea.value = day.description;
+    descTextarea.addEventListener('input', () => {
+      day.description = descTextarea.value;
+      markDirty();
+    });
+    block.appendChild(descTextarea);
+
     $daysContainer.appendChild(block);
   });
 }
@@ -139,7 +177,7 @@ $endInput.addEventListener('input', () => {
 $addDayBtn.addEventListener('click', () => {
   const keys = dayKeys().map(Number);
   const next = keys.length ? Math.max(...keys) + 1 : 1;
-  state.days[next] = '';
+  state.days[next] = emptyDay();
   markDirty();
   renderDays();
 });
