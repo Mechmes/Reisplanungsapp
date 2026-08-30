@@ -236,3 +236,51 @@ button.danger { background: var(--danger); color: #fff; }
   background: var(--surface-2);
   color: var(--text-dim);
 }
+
+#authGate {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 20px;
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+
+.auth-box h1 {
+  font-size: 22px;
+  margin: 0 0 6px;
+}
+
+.auth-box p {
+  color: var(--text-dim);
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+
+.auth-box input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 16px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.auth-error {
+  color: var(--danger) !important;
+  margin-bottom: 12px !important;
+}
+
+.auth-box button.primary { width: 100%; }
