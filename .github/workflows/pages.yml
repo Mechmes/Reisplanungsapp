@@ -2,7 +2,7 @@ name: Deploy Reiseplaner PWA to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths: [reiseplaner-app/**]
   workflow_dispatch:
 
@@ -22,9 +22,28 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout main (Produktion -> Site-Root)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: site/main
+
+      - name: Checkout dev (Test -> /dev/)
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          path: site/dev
+
+      - name: Combine builds
+        run: |
+          mkdir -p out
+          cp -r site/main/reiseplaner-app/. out/
+          mkdir -p out/dev
+          cp -r site/dev/reiseplaner-app/. out/dev/
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: reiseplaner-app
+          path: out
+
       - id: deployment
         uses: actions/deploy-pages@v4
