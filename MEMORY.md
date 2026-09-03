@@ -51,6 +51,11 @@
   `supabase_setup_app_settings.sql` im Supabase SQL-Editor ausführen
   (legt `app_settings` + `app_settings_dev` an, Startpasswort
   `reise2027`).
+- **CSV-Export einer Reise** (`trip.html`/`trip.js`): Button "⤓ CSV"
+  oben rechts in der Reise-Detailansicht. Baut clientseitig eine CSV
+  (Spalten Tag/Datum/Titel/Hotel/Beschreibung, Semikolon-getrennt, mit
+  UTF-8-BOM für Excel) und löst den Download über einen
+  `Blob`+`<a download>`-Link aus — kein Server/Backend nötig.
 
 ## Backend: Supabase (aktiv, seit diesem Durchlauf)
 
