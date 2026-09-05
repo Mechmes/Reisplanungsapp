@@ -8,6 +8,7 @@ const $daysContainer = document.getElementById('daysContainer');
 const $addDayBtn = document.getElementById('addDayBtn');
 const $saveBtn = document.getElementById('saveBtn');
 const $statusText = document.getElementById('statusText');
+const $exportCsvBtn = document.getElementById('exportCsvBtn');
 
 if (!tripId) {
   window.location.href = 'index.html';
@@ -193,6 +194,45 @@ async function persist() {
 }
 
 $saveBtn.addEventListener('click', persist);
+
+function csvEscape(value) {
+  const s = String(value == null ? '' : value);
+  if (/[";\n]/.test(s)) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+function buildCsv() {
+  const header = ['Tag', 'Datum', 'Titel', 'Hotel', 'Beschreibung'];
+  const rows = dayKeys().map((key) => {
+    const day = normalizeDay(state.days[key]);
+    return [key, dateForDay(key), day.title, day.hotel, day.description];
+  });
+  return [header, ...rows].map((row) => row.map(csvEscape).join(';')).join('\r\n');
+}
+
+function slugify(text) {
+  return (text || 'reise')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9äöüß]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'reise';
+}
+
+$exportCsvBtn.addEventListener('click', () => {
+  // BOM voranstellen, damit Excel Umlaute korrekt als UTF-8 erkennt.
+  const csv = '﻿' + buildCsv();
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = slugify(state.title) + '.csv';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+});
 
 window.addEventListener('beforeunload', (e) => {
   if (dirty) {
