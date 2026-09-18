@@ -10,6 +10,9 @@ const $addDayBtn = document.getElementById('addDayBtn');
 const $saveBtn = document.getElementById('saveBtn');
 const $statusText = document.getElementById('statusText');
 const $exportCsvBtn = document.getElementById('exportCsvBtn');
+const $hotelTotal = document.getElementById('hotelTotal');
+const $activityTotal = document.getElementById('activityTotal');
+const $grandTotal = document.getElementById('grandTotal');
 
 if (!tripId) {
   window.location.href = 'index.html';
@@ -67,15 +70,43 @@ function syncDaysFromDates() {
 }
 
 function emptyDay() {
-  return { title: '', hotel: '', description: '' };
+  return { title: '', hotel: '', hotelCost: '', activityCost: '', description: '' };
 }
 
 // Migriert alte Tage, die noch als reiner Text (statt Objekt) gespeichert sind.
 function normalizeDay(value) {
   if (value && typeof value === 'object') {
-    return { title: value.title || '', hotel: value.hotel || '', description: value.description || '' };
+    return {
+      title: value.title || '',
+      hotel: value.hotel || '',
+      hotelCost: value.hotelCost || '',
+      activityCost: value.activityCost || '',
+      description: value.description || ''
+    };
   }
-  return { title: '', hotel: '', description: value || '' };
+  return { title: '', hotel: '', hotelCost: '', activityCost: '', description: value || '' };
+}
+
+function parseCost(value) {
+  const n = parseFloat(String(value).replace(',', '.'));
+  return isNaN(n) ? 0 : n;
+}
+
+function formatCost(value) {
+  return value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+}
+
+function updateBudgetSummary() {
+  let hotelTotal = 0;
+  let activityTotal = 0;
+  dayKeys().forEach((key) => {
+    const day = normalizeDay(state.days[key]);
+    hotelTotal += parseCost(day.hotelCost);
+    activityTotal += parseCost(day.activityCost);
+  });
+  $hotelTotal.textContent = formatCost(hotelTotal);
+  $activityTotal.textContent = formatCost(activityTotal);
+  $grandTotal.textContent = formatCost(hotelTotal + activityTotal);
 }
 
 function renderDays() {
@@ -131,6 +162,51 @@ function renderDays() {
     });
     block.appendChild(hotelInput);
 
+    const costRow = document.createElement('div');
+    costRow.className = 'day-cost-row';
+
+    const hotelCostField = document.createElement('div');
+    hotelCostField.className = 'day-cost-field';
+    const hotelCostLabel = document.createElement('label');
+    hotelCostLabel.textContent = 'Hotelkosten (€)';
+    const hotelCostInput = document.createElement('input');
+    hotelCostInput.type = 'number';
+    hotelCostInput.step = '0.01';
+    hotelCostInput.min = '0';
+    hotelCostInput.className = 'day-field-hotel-cost';
+    hotelCostInput.placeholder = '0,00';
+    hotelCostInput.value = day.hotelCost;
+    hotelCostInput.addEventListener('input', () => {
+      day.hotelCost = hotelCostInput.value;
+      markDirty();
+      updateBudgetSummary();
+    });
+    hotelCostField.appendChild(hotelCostLabel);
+    hotelCostField.appendChild(hotelCostInput);
+
+    const activityCostField = document.createElement('div');
+    activityCostField.className = 'day-cost-field';
+    const activityCostLabel = document.createElement('label');
+    activityCostLabel.textContent = 'Aktivitäten (€)';
+    const activityCostInput = document.createElement('input');
+    activityCostInput.type = 'number';
+    activityCostInput.step = '0.01';
+    activityCostInput.min = '0';
+    activityCostInput.className = 'day-field-activity-cost';
+    activityCostInput.placeholder = '0,00';
+    activityCostInput.value = day.activityCost;
+    activityCostInput.addEventListener('input', () => {
+      day.activityCost = activityCostInput.value;
+      markDirty();
+      updateBudgetSummary();
+    });
+    activityCostField.appendChild(activityCostLabel);
+    activityCostField.appendChild(activityCostInput);
+
+    costRow.appendChild(hotelCostField);
+    costRow.appendChild(activityCostField);
+    block.appendChild(costRow);
+
     const descTextarea = document.createElement('textarea');
     descTextarea.className = 'day-field-description';
     descTextarea.placeholder = 'Beschreibung, Programm, Notizen …';
@@ -143,6 +219,7 @@ function renderDays() {
 
     $daysContainer.appendChild(block);
   });
+  updateBudgetSummary();
 }
 
 function render() {
@@ -211,10 +288,10 @@ function csvEscape(value) {
 }
 
 function buildCsv() {
-  const header = ['Tag', 'Datum', 'Titel', 'Hotel', 'Beschreibung'];
+  const header = ['Tag', 'Datum', 'Titel', 'Hotel', 'Hotelkosten', 'Aktivitäten', 'Beschreibung'];
   const rows = dayKeys().map((key) => {
     const day = normalizeDay(state.days[key]);
-    return [key, dateForDay(key), day.title, day.hotel, day.description];
+    return [key, dateForDay(key), day.title, day.hotel, day.hotelCost, day.activityCost, day.description];
   });
   return [header, ...rows].map((row) => row.map(csvEscape).join(';')).join('\r\n');
 }
