@@ -11,25 +11,62 @@
 <style>
   .day-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
   .day-block h3 { margin: 0 0 8px; font-size: 15px; }
-  .day-block textarea { width: 100%; min-height: 70px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text); padding: 10px; font-size: 15px; font-family: inherit; resize: vertical; }
+  .day-block input, .day-block textarea { width: 100%; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); color: var(--text); padding: 10px; font-size: 15px; font-family: inherit; box-sizing: border-box; margin-bottom: 8px; }
+  .day-block textarea { min-height: 70px; resize: vertical; margin-bottom: 0; }
+  .day-field-title { font-weight: 600; }
   .trip-title-input { width: 100%; font-size: 20px; font-weight: 700; border: none; background: transparent; color: var(--text); padding: 0; margin-bottom: 4px; }
   .add-day-btn { width: 100%; padding: 12px; border-radius: 10px; border: 1px dashed var(--border); background: transparent; color: var(--text-dim); font-size: 15px; margin-top: 4px; }
+  .day-cost-row { display: flex; gap: 10px; margin-bottom: 8px; }
+  .day-cost-field { flex: 1; }
+  .day-cost-field label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 4px; }
+  .day-cost-field input { margin-bottom: 0; }
+  .budget-summary { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-top: 20px; }
+  .budget-summary h3 { margin: 0 0 10px; font-size: 15px; }
+  .budget-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 15px; }
+  .budget-row.total { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 10px; font-weight: 700; }
 </style>
 </head>
 <body>
   <div class="topbar">
     <a href="index.html" class="back-link">‹ Reisen</a>
+    <button class="icon-btn" id="exportCsvBtn" aria-label="Als CSV exportieren">⤓ CSV</button>
   </div>
 
   <div class="container">
     <input class="trip-title-input" id="titleInput" type="text" placeholder="Titel der Reise">
+    <div style="display:flex; gap:10px; margin-top:10px;">
+      <div class="field" style="flex:1;">
+        <label for="startInput">Startdatum</label>
+        <input id="startInput" type="date">
+      </div>
+      <div class="field" style="flex:1;">
+        <label for="endInput">Enddatum</label>
+        <input id="endInput" type="date">
+      </div>
+    </div>
     <div class="field" style="margin-top:10px;">
-      <label for="startInput">Startdatum</label>
-      <input id="startInput" type="date">
+      <label for="creatorInput">Ersteller</label>
+      <input id="creatorInput" type="text" placeholder="Dein Name">
     </div>
 
     <div id="daysContainer" style="margin-top:20px;"></div>
     <button class="add-day-btn" id="addDayBtn">+ Tag hinzufügen</button>
+
+    <div class="budget-summary">
+      <h3>Budget</h3>
+      <div class="budget-row">
+        <span>Hotelkosten gesamt</span>
+        <span id="hotelTotal">0,00 €</span>
+      </div>
+      <div class="budget-row">
+        <span>Aktivitäten gesamt</span>
+        <span id="activityTotal">0,00 €</span>
+      </div>
+      <div class="budget-row total">
+        <span>Gesamt</span>
+        <span id="grandTotal">0,00 €</span>
+      </div>
+    </div>
   </div>
 
   <div class="save-bar">
@@ -38,6 +75,7 @@
   </div>
 
   <script src="store.js"></script>
+  <script src="auth.js"></script>
   <script src="trip.js"></script>
 </body>
 </html>
