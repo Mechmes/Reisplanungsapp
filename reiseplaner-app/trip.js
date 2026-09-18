@@ -3,6 +3,7 @@ const tripId = params.get('id');
 
 const $titleInput = document.getElementById('titleInput');
 const $startInput = document.getElementById('startInput');
+const $creatorInput = document.getElementById('creatorInput');
 const $daysContainer = document.getElementById('daysContainer');
 const $addDayBtn = document.getElementById('addDayBtn');
 const $saveBtn = document.getElementById('saveBtn');
@@ -83,6 +84,7 @@ function renderDays() {
 function render() {
   $titleInput.value = state.title || '';
   $startInput.value = state.start || '';
+  $creatorInput.value = state.creator || '';
   renderDays();
   setStatus();
 }
@@ -94,6 +96,11 @@ $titleInput.addEventListener('input', () => {
 
 $startInput.addEventListener('input', () => {
   state.start = $startInput.value;
+  markDirty();
+});
+
+$creatorInput.addEventListener('input', () => {
+  state.creator = $creatorInput.value;
   markDirty();
 });
 

@@ -28,14 +28,14 @@ const Store = {
     return readIndex().sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
   },
 
-  createTrip({ title, start }) {
+  createTrip({ title, start, creator }) {
     const id = uid();
     const now = new Date().toISOString();
-    const meta = { id, title: title || 'Neue Reise', start: start || '', updatedAt: now, createdAt: now };
+    const meta = { id, title: title || 'Neue Reise', start: start || '', creator: creator || '', updatedAt: now, createdAt: now };
     const list = readIndex();
     list.push(meta);
     writeIndex(list);
-    const initialState = { id, title: meta.title, start: meta.start, days: {} };
+    const initialState = { id, title: meta.title, start: meta.start, creator: meta.creator, days: {} };
     localStorage.setItem(TRIP_DATA_PREFIX + id, JSON.stringify(initialState));
     return meta;
   },
@@ -62,6 +62,7 @@ const Store = {
     if (meta) {
       meta.title = state.title || meta.title;
       meta.start = state.start || meta.start;
+      meta.creator = state.creator || '';
       meta.updatedAt = new Date().toISOString();
       writeIndex(list);
     }

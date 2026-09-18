@@ -4,6 +4,7 @@ const $newTripBtn = document.getElementById('newTripBtn');
 const $newTripModal = document.getElementById('newTripModal');
 const $tripTitle = document.getElementById('tripTitle');
 const $tripStart = document.getElementById('tripStart');
+const $tripCreator = document.getElementById('tripCreator');
 const $cancelNewTrip = document.getElementById('cancelNewTrip');
 const $confirmNewTrip = document.getElementById('confirmNewTrip');
 const $deleteModal = document.getElementById('deleteModal');
@@ -40,6 +41,13 @@ function render() {
     info.appendChild(title);
     info.appendChild(meta);
 
+    if (trip.creator) {
+      const creator = document.createElement('div');
+      creator.className = 'meta';
+      creator.textContent = 'Erstellt von: ' + trip.creator;
+      info.appendChild(creator);
+    }
+
     const delBtn = document.createElement('button');
     delBtn.className = 'icon-btn';
     delBtn.textContent = '🗑';
@@ -62,6 +70,7 @@ function render() {
 function openNewTripModal() {
   $tripTitle.value = '';
   $tripStart.value = '';
+  $tripCreator.value = '';
   $newTripModal.hidden = false;
   setTimeout(() => $tripTitle.focus(), 50);
 }
@@ -90,7 +99,8 @@ $newTripModal.addEventListener('click', (e) => {
 $confirmNewTrip.addEventListener('click', () => {
   const title = $tripTitle.value.trim();
   const start = $tripStart.value;
-  const trip = Store.createTrip({ title, start });
+  const creator = $tripCreator.value.trim();
+  const trip = Store.createTrip({ title, start, creator });
   closeNewTripModal();
   window.location.href = 'trip.html?id=' + encodeURIComponent(trip.id);
 });
