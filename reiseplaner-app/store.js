@@ -36,24 +36,26 @@ const Store = {
   // Liste aller Reisen (Metadaten für die Übersicht)
   async listTrips() {
     const rows = await rest(
-      TABLE + '?select=id,title,start,"end",updated_at,created_at&order=updated_at.desc.nullslast'
+      TABLE + '?select=id,title,start,"end",creator,updated_at,created_at&order=updated_at.desc.nullslast'
     );
     return rows.map((r) => ({
       id: r.id,
       title: r.title,
       start: r.start || '',
+      creator: r.creator || '',
       updatedAt: r.updated_at,
       createdAt: r.created_at
     }));
   },
 
-  async createTrip({ title, start }) {
+  async createTrip({ title, start, creator }) {
     const id = uid();
     const row = {
       id,
       title: title || 'Neue Reise',
       start: start || null,
       end: null,
+      creator: creator || '',
       days: {}
     };
     const [created] = await rest(TABLE, {
@@ -61,7 +63,13 @@ const Store = {
       headers: { Prefer: 'return=representation' },
       body: JSON.stringify(row)
     });
-    return { id: created.id, title: created.title, start: created.start || '', updatedAt: created.updated_at };
+    return {
+      id: created.id,
+      title: created.title,
+      start: created.start || '',
+      creator: created.creator || '',
+      updatedAt: created.updated_at
+    };
   },
 
   async deleteTrip(id) {
@@ -72,7 +80,14 @@ const Store = {
     const rows = await rest(TABLE + '?id=eq.' + encodeURIComponent(id) + '&select=*');
     if (!rows.length) return null;
     const r = rows[0];
-    return { id: r.id, title: r.title || '', start: r.start || '', end: r.end || '', days: r.days || {} };
+    return {
+      id: r.id,
+      title: r.title || '',
+      start: r.start || '',
+      end: r.end || '',
+      creator: r.creator || '',
+      days: r.days || {}
+    };
   },
 
   async saveTripState(id, state) {
@@ -82,6 +97,7 @@ const Store = {
         title: state.title || '',
         start: state.start || null,
         end: state.end || null,
+        creator: state.creator || '',
         days: state.days || {},
         updated_at: new Date().toISOString()
       })
