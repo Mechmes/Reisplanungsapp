@@ -1,0 +1,2237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.1/archimate3_Diagram.xsd"
+       identifier="id-reiseplaner-model">
+  <name xml:lang="de">Reiseplaner PWA</name>
+  <documentation xml:lang="de">Architekturmodell der Reiseplaner-PWA (Repository Reisplanungsapp, Verzeichnis reiseplaner-app/). Rein clientseitige Progressive Web App ohne Backend; Daten im localStorage, Offline-Fähigkeit über Service Worker. Enthält zusätzlich die im Code angekündigte Zielarchitektur mit Supabase-Datenschicht.</documentation>
+  <elements>
+    <element identifier="id-st_user" xsi:type="Stakeholder">
+      <name xml:lang="de">Reisende</name>
+      <documentation xml:lang="de">Personen, die ihre Reisen mit der App planen.</documentation>
+    </element>
+    <element identifier="id-g_plan" xsi:type="Goal">
+      <name xml:lang="de">Reisen gemeinsam planen</name>
+      <documentation xml:lang="de">Leitziel laut Web-App-Manifest ("Reisen gemeinsam planen"). Die gemeinsame Planung setzt ein geteiltes Backend voraus und ist im Ist-Stand noch nicht umgesetzt.</documentation>
+    </element>
+    <element identifier="id-rq_offline" xsi:type="Requirement">
+      <name xml:lang="de">Offline nutzbar</name>
+      <documentation xml:lang="de">Die App soll ohne Netzverbindung startbar und bedienbar sein (PWA mit Service Worker).</documentation>
+    </element>
+    <element identifier="id-rq_install" xsi:type="Requirement">
+      <name xml:lang="de">Installierbar auf Mobilgeräten</name>
+      <documentation xml:lang="de">Installation auf dem Homescreen im Standalone-Modus (Web-App-Manifest, Apple-Meta-Tags).</documentation>
+    </element>
+    <element identifier="id-rq_swap" xsi:type="Requirement">
+      <name xml:lang="de">Datenschicht austauschbar</name>
+      <documentation xml:lang="de">Die localStorage-Datenschicht soll später durch einen Supabase-Adapter mit identischer Schnittstelle ersetzt werden können, ohne index.html/trip.html zu ändern (siehe Kommentar in store.js).</documentation>
+    </element>
+    <element identifier="id-pr_nobuild" xsi:type="Principle">
+      <name xml:lang="de">Kein Build-Schritt / keine Abhängigkeiten</name>
+      <documentation xml:lang="de">Reines HTML, CSS und Vanilla-JavaScript ohne Framework, Bundler oder externe Bibliotheken.</documentation>
+    </element>
+    <element identifier="id-ba_user" xsi:type="BusinessActor">
+      <name xml:lang="de">Reisende Person</name>
+      <documentation xml:lang="de">Nutzer*in der Reiseplaner-App.</documentation>
+    </element>
+    <element identifier="id-bs_plan" xsi:type="BusinessService">
+      <name xml:lang="de">Reiseplanung</name>
+      <documentation xml:lang="de">Anlegen, Verwalten und tageweises Planen von Reisen.</documentation>
+    </element>
+    <element identifier="id-bp_plan" xsi:type="BusinessProcess">
+      <name xml:lang="de">Reise planen</name>
+      <documentation xml:lang="de">Gesamtprozess der Reiseplanung.</documentation>
+    </element>
+    <element identifier="id-bp_create" xsi:type="BusinessProcess">
+      <name xml:lang="de">Reise anlegen</name>
+      <documentation xml:lang="de">Neue Reise mit Titel und Startdatum erfassen.</documentation>
+    </element>
+    <element identifier="id-bp_edit" xsi:type="BusinessProcess">
+      <name xml:lang="de">Tagesprogramm pflegen</name>
+      <documentation xml:lang="de">Titel und Startdatum anpassen, Tage hinzufügen/entfernen und je Tag Programm und Notizen erfassen.</documentation>
+    </element>
+    <element identifier="id-bp_delete" xsi:type="BusinessProcess">
+      <name xml:lang="de">Reise löschen</name>
+      <documentation xml:lang="de">Nicht mehr benötigte Reise nach Bestätigung entfernen.</documentation>
+    </element>
+    <element identifier="id-bo_trip" xsi:type="BusinessObject">
+      <name xml:lang="de">Reise</name>
+      <documentation xml:lang="de">Eine geplante Reise mit Titel, Startdatum und Tagen.</documentation>
+    </element>
+    <element identifier="id-bo_day" xsi:type="BusinessObject">
+      <name xml:lang="de">Reisetag</name>
+      <documentation xml:lang="de">Ein nummerierter Tag der Reise mit Freitext für Programm und Notizen.</documentation>
+    </element>
+    <element identifier="id-ac_pwa" xsi:type="ApplicationComponent">
+      <name xml:lang="de">Reiseplaner PWA</name>
+      <documentation xml:lang="de">Progressive Web App (reiseplaner-app/). Läuft vollständig clientseitig im Browser.</documentation>
+    </element>
+    <element identifier="id-ac_overview" xsi:type="ApplicationComponent">
+      <name xml:lang="de">Reiseübersicht</name>
+      <documentation xml:lang="de">Startseite mit Liste aller Reisen, Dialog "Neue Reise anlegen" und Lösch-Dialog. Registriert den Service Worker.</documentation>
+      <properties>
+        <property propertyDefinitionRef="pd-1">
+          <value xml:lang="de">index.html, app.js</value>
+        </property>
+      </properties>
+    </element>
+    <element identifier="id-ac_editor" xsi:type="ApplicationComponent">
+      <name xml:lang="de">Reise-Editor</name>
+      <documentation xml:lang="de">Detailseite einer Reise (trip.html?id=&lt;id&gt;): Titel, Startdatum, Tage mit Notizen, expliziter Speichern-Button mit Statusanzeige und Warnung bei ungespeicherten Änderungen.</documentation>
+      <properties>
+        <property propertyDefinitionRef="pd-1">
+          <value xml:lang="de">trip.html, trip.js</value>
+        </property>
+      </properties>
+    </element>
+    <element identifier="id-ac_store" xsi:type="ApplicationComponent">
+      <name xml:lang="de">Store (Datenschicht)</name>
+      <documentation xml:lang="de">Zentrale Datenschicht (globales Objekt Store) auf Basis von localStorage.</documentation>
+      <properties>
+        <property propertyDefinitionRef="pd-1">
+          <value xml:lang="de">store.js</value>
+        </property>
+      </properties>
+    </element>
+    <element identifier="id-ac_sw" xsi:type="ApplicationComponent">
+      <name xml:lang="de">Service Worker</name>
+      <documentation xml:lang="de">Cache "reiseplaner-v1": Precaching aller App-Dateien beim Install, Entfernen alter Caches beim Activate, Cache-first mit Aktualisierung im Hintergrund (stale-while-revalidate) für GET-Requests.</documentation>
+      <properties>
+        <property propertyDefinitionRef="pd-1">
+          <value xml:lang="de">sw.js</value>
+        </property>
+      </properties>
+    </element>
+    <element identifier="id-ai_overview" xsi:type="ApplicationInterface">
+      <name xml:lang="de">Übersichts-UI</name>
+      <documentation xml:lang="de">Mobile Weboberfläche: Reisekarten, Floating-Action-Button (+), Modale Dialoge.</documentation>
+    </element>
+    <element identifier="id-ai_editor" xsi:type="ApplicationInterface">
+      <name xml:lang="de">Editor-UI</name>
+      <documentation xml:lang="de">Mobile Weboberfläche: Titelfeld, Datumsfeld, Tagesblöcke mit Textarea, Save-Bar.</documentation>
+    </element>
+    <element identifier="id-ai_store" xsi:type="ApplicationInterface">
+      <name xml:lang="de">Store-API</name>
+      <documentation xml:lang="de">JavaScript-Schnittstelle: listTrips(), createTrip({title,start}), deleteTrip(id), getTripState(id), saveTripState(id,state).</documentation>
+    </element>
+    <element identifier="id-af_list" xsi:type="ApplicationFunction">
+      <name xml:lang="de">Reisen auflisten</name>
+      <documentation xml:lang="de">Store.listTrips(), sortiert nach updatedAt absteigend.</documentation>
+    </element>
+    <element identifier="id-af_create" xsi:type="ApplicationFunction">
+      <name xml:lang="de">Reise anlegen</name>
+      <documentation xml:lang="de">Store.createTrip() erzeugt ID (t_&lt;zeit&gt;_&lt;zufall&gt;), Metadaten und leeren Reisezustand; danach Navigation in den Editor.</documentation>
+    </element>
+    <element identifier="id-af_delete" xsi:type="ApplicationFunction">
+      <name xml:lang="de">Reise löschen</name>
+      <documentation xml:lang="de">Store.deleteTrip() entfernt Index-Eintrag und Reisedaten.</documentation>
+    </element>
+    <element identifier="id-af_edit" xsi:type="ApplicationFunction">
+      <name xml:lang="de">Reise bearbeiten</name>
+      <documentation xml:lang="de">Lokaler Zustand im Editor mit Dirty-Tracking (Tage hinzufügen/entfernen, Texte ändern).</documentation>
+    </element>
+    <element identifier="id-af_persist" xsi:type="ApplicationFunction">
+      <name xml:lang="de">Reisezustand speichern</name>
+      <documentation xml:lang="de">Store.saveTripState() schreibt Reisedaten und aktualisiert Titel, Start und updatedAt im Index.</documentation>
+    </element>
+    <element identifier="id-af_cache" xsi:type="ApplicationFunction">
+      <name xml:lang="de">Offline-Caching</name>
+      <documentation xml:lang="de">Precache + stale-while-revalidate der statischen Dateien.</documentation>
+    </element>
+    <element identifier="id-as_manage" xsi:type="ApplicationService">
+      <name xml:lang="de">Reiseverwaltung</name>
+      <documentation xml:lang="de">Reisen auflisten, anlegen und löschen.</documentation>
+    </element>
+    <element identifier="id-as_edit" xsi:type="ApplicationService">
+      <name xml:lang="de">Reisebearbeitung</name>
+      <documentation xml:lang="de">Reisedetails und Tagesprogramm bearbeiten und speichern.</documentation>
+    </element>
+    <element identifier="id-as_persist" xsi:type="ApplicationService">
+      <name xml:lang="de">Datenpersistenz</name>
+      <documentation xml:lang="de">Lokale Speicherung der Reisen über die Store-API.</documentation>
+    </element>
+    <element identifier="id-as_offline" xsi:type="ApplicationService">
+      <name xml:lang="de">Offline-Verfügbarkeit</name>
+      <documentation xml:lang="de">Auslieferung der App-Dateien aus dem Cache.</documentation>
+    </element>
+    <element identifier="id-do_index" xsi:type="DataObject">
+      <name xml:lang="de">Reise-Index</name>
+      <documentation xml:lang="de">Array von Reise-Metadaten {id, title, start, createdAt, updatedAt}.</documentation>
+      <properties>
+        <property propertyDefinitionRef="pd-2">
+          <value xml:lang="de">reiseplaner.trips</value>
+        </property>
+      </properties>
+    </element>
+    <element identifier="id-do_trip" xsi:type="DataObject">
+      <name xml:lang="de">Reisezustand (TripState)</name>
+      <documentation xml:lang="de">Objekt {id, title, start, days: {"1": "Text", ...}} je Reise.</documentation>
+      <properties>
+        <property propertyDefinitionRef="pd-2">
+          <value xml:lang="de">reiseplaner.trip.&lt;id&gt;</value>
+        </property>
+      </properties>
+    </element>
+    <element identifier="id-dv_client" xsi:type="Device">
+      <name xml:lang="de">Endgerät</name>
+      <documentation xml:lang="de">Smartphone, Tablet oder Desktop-Rechner der reisenden Person.</documentation>
+    </element>
+    <element identifier="id-ss_browser" xsi:type="SystemSoftware">
+      <name xml:lang="de">Webbrowser</name>
+      <documentation xml:lang="de">Moderner Browser mit Unterstützung für Service Worker, Cache Storage und Web Storage.</documentation>
+    </element>
+    <element identifier="id-ts_localstorage" xsi:type="TechnologyService">
+      <name xml:lang="de">Web Storage (localStorage)</name>
+      <documentation xml:lang="de">Persistenter Schlüssel-Wert-Speicher pro Origin im Browser.</documentation>
+    </element>
+    <element identifier="id-ts_cache" xsi:type="TechnologyService">
+      <name xml:lang="de">Cache Storage / Service Worker API</name>
+      <documentation xml:lang="de">Browser-APIs für Offline-Caching und Request-Interception.</documentation>
+    </element>
+    <element identifier="id-ts_runtime" xsi:type="TechnologyService">
+      <name xml:lang="de">HTML/JS-Laufzeitumgebung</name>
+      <documentation xml:lang="de">Rendering und Ausführung von HTML, CSS und JavaScript.</documentation>
+    </element>
+    <element identifier="id-nd_web" xsi:type="Node">
+      <name xml:lang="de">Statischer Webserver</name>
+      <documentation xml:lang="de">Beliebiges statisches Hosting (HTTPS erforderlich für Service Worker); keine serverseitige Logik.</documentation>
+    </element>
+    <element identifier="id-ts_hosting" xsi:type="TechnologyService">
+      <name xml:lang="de">Statisches Hosting (HTTPS)</name>
+      <documentation xml:lang="de">Auslieferung der App-Dateien per HTTPS.</documentation>
+    </element>
+    <element identifier="id-cn_internet" xsi:type="CommunicationNetwork">
+      <name xml:lang="de">Internet</name>
+      <documentation xml:lang="de">Nur für Erstabruf und Aktualisierung der App-Dateien benötigt.</documentation>
+    </element>
+    <element identifier="id-ar_index" xsi:type="Artifact">
+      <name xml:lang="de">index.html</name>
+      <documentation xml:lang="de">Startseite (Reiseübersicht).</documentation>
+    </element>
+    <element identifier="id-ar_appjs" xsi:type="Artifact">
+      <name xml:lang="de">app.js</name>
+      <documentation xml:lang="de">Logik der Reiseübersicht, Service-Worker-Registrierung.</documentation>
+    </element>
+    <element identifier="id-ar_trip" xsi:type="Artifact">
+      <name xml:lang="de">trip.html</name>
+      <documentation xml:lang="de">Editor-Seite einer Reise.</documentation>
+    </element>
+    <element identifier="id-ar_tripjs" xsi:type="Artifact">
+      <name xml:lang="de">trip.js</name>
+      <documentation xml:lang="de">Logik des Reise-Editors.</documentation>
+    </element>
+    <element identifier="id-ar_storejs" xsi:type="Artifact">
+      <name xml:lang="de">store.js</name>
+      <documentation xml:lang="de">Datenschicht.</documentation>
+    </element>
+    <element identifier="id-ar_sw" xsi:type="Artifact">
+      <name xml:lang="de">sw.js</name>
+      <documentation xml:lang="de">Service Worker.</documentation>
+    </element>
+    <element identifier="id-ar_css" xsi:type="Artifact">
+      <name xml:lang="de">style.css</name>
+      <documentation xml:lang="de">Gemeinsames Stylesheet (Dark-Theme, mobile-first).</documentation>
+    </element>
+    <element identifier="id-ar_manifest" xsi:type="Artifact">
+      <name xml:lang="de">manifest.webmanifest</name>
+      <documentation xml:lang="de">Web-App-Manifest (Name, Icons, Standalone-Modus, Theme-Farben).</documentation>
+    </element>
+    <element identifier="id-ar_icons" xsi:type="Artifact">
+      <name xml:lang="de">icons/*.png</name>
+      <documentation xml:lang="de">App-Icons 192x192 und 512x512.</documentation>
+    </element>
+    <element identifier="id-ar_ls_index" xsi:type="Artifact">
+      <name xml:lang="de">localStorage: reiseplaner.trips</name>
+      <documentation xml:lang="de">JSON-serialisierter Reise-Index.</documentation>
+    </element>
+    <element identifier="id-ar_ls_trip" xsi:type="Artifact">
+      <name xml:lang="de">localStorage: reiseplaner.trip.&lt;id&gt;</name>
+      <documentation xml:lang="de">JSON-serialisierter Reisezustand, ein Eintrag je Reise.</documentation>
+    </element>
+    <element identifier="id-pl_ist" xsi:type="Plateau">
+      <name xml:lang="de">Ist: Lokale PWA</name>
+      <documentation xml:lang="de">Einzelnutzer-App, Daten ausschließlich im localStorage des Endgeräts.</documentation>
+    </element>
+    <element identifier="id-pl_ziel" xsi:type="Plateau">
+      <name xml:lang="de">Ziel: PWA mit Supabase-Backend</name>
+      <documentation xml:lang="de">Datenschicht über Supabase; ermöglicht Synchronisation zwischen Geräten und gemeinsame Planung.</documentation>
+    </element>
+    <element identifier="id-gap_backend" xsi:type="Gap">
+      <name xml:lang="de">Fehlendes geteiltes Backend</name>
+      <documentation xml:lang="de">Keine Synchronisation, kein Mehrbenutzerbetrieb, kein Backup der Daten außerhalb des Browsers.</documentation>
+    </element>
+    <element identifier="id-wp_adapter" xsi:type="WorkPackage">
+      <name xml:lang="de">Supabase-Adapter implementieren</name>
+      <documentation xml:lang="de">Store-Implementierung mit identischer Schnittstelle auf Supabase umstellen.</documentation>
+    </element>
+    <element identifier="id-ac_supa_adapter" xsi:type="ApplicationComponent">
+      <name xml:lang="de">Store (Supabase-Adapter)</name>
+      <documentation xml:lang="de">Geplante Datenschicht mit identischer Store-API, Persistenz in Supabase.</documentation>
+      <properties>
+        <property propertyDefinitionRef="pd-3">
+          <value xml:lang="de">geplant</value>
+        </property>
+      </properties>
+    </element>
+    <element identifier="id-nd_supabase" xsi:type="Node">
+      <name xml:lang="de">Supabase (PostgreSQL)</name>
+      <documentation xml:lang="de">Geplanter Backend-Dienst (Datenbank, Auth, Realtime).</documentation>
+      <properties>
+        <property propertyDefinitionRef="pd-3">
+          <value xml:lang="de">geplant</value>
+        </property>
+      </properties>
+    </element>
+  </elements>
+  <relationships>
+    <relationship identifier="id-r1" source="id-st_user" target="id-g_plan" xsi:type="Association"/>
+    <relationship identifier="id-r2" source="id-rq_offline" target="id-g_plan" xsi:type="Influence">
+      <name xml:lang="de">+</name>
+    </relationship>
+    <relationship identifier="id-r3" source="id-rq_install" target="id-g_plan" xsi:type="Influence">
+      <name xml:lang="de">+</name>
+    </relationship>
+    <relationship identifier="id-r4" source="id-rq_swap" target="id-g_plan" xsi:type="Realization"/>
+    <relationship identifier="id-r5" source="id-ac_sw" target="id-rq_offline" xsi:type="Realization"/>
+    <relationship identifier="id-r6" source="id-ar_manifest" target="id-rq_install" xsi:type="Realization"/>
+    <relationship identifier="id-r7" source="id-ac_store" target="id-rq_swap" xsi:type="Realization"/>
+    <relationship identifier="id-r8" source="id-ac_pwa" target="id-pr_nobuild" xsi:type="Realization"/>
+    <relationship identifier="id-r9" source="id-ba_user" target="id-st_user" xsi:type="Association"/>
+    <relationship identifier="id-r10" source="id-ba_user" target="id-bp_plan" xsi:type="Assignment"/>
+    <relationship identifier="id-r11" source="id-bp_plan" target="id-bp_create" xsi:type="Composition"/>
+    <relationship identifier="id-r12" source="id-bp_plan" target="id-bp_edit" xsi:type="Composition"/>
+    <relationship identifier="id-r13" source="id-bp_plan" target="id-bp_delete" xsi:type="Composition"/>
+    <relationship identifier="id-r14" source="id-bp_create" target="id-bp_edit" xsi:type="Triggering"/>
+    <relationship identifier="id-r15" source="id-bp_plan" target="id-bs_plan" xsi:type="Realization"/>
+    <relationship identifier="id-r16" source="id-bs_plan" target="id-ba_user" xsi:type="Serving"/>
+    <relationship identifier="id-r17" source="id-bo_trip" target="id-bo_day" xsi:type="Composition"/>
+    <relationship identifier="id-r18" source="id-bp_create" target="id-bo_trip" xsi:type="Access" accessType="Write"/>
+    <relationship identifier="id-r19" source="id-bp_edit" target="id-bo_trip" xsi:type="Access" accessType="ReadWrite"/>
+    <relationship identifier="id-r20" source="id-bp_edit" target="id-bo_day" xsi:type="Access" accessType="ReadWrite"/>
+    <relationship identifier="id-r21" source="id-bp_delete" target="id-bo_trip" xsi:type="Access" accessType="Write"/>
+    <relationship identifier="id-r22" source="id-ac_pwa" target="id-ac_overview" xsi:type="Composition"/>
+    <relationship identifier="id-r23" source="id-ac_pwa" target="id-ac_editor" xsi:type="Composition"/>
+    <relationship identifier="id-r24" source="id-ac_pwa" target="id-ac_store" xsi:type="Composition"/>
+    <relationship identifier="id-r25" source="id-ac_pwa" target="id-ac_sw" xsi:type="Composition"/>
+    <relationship identifier="id-r26" source="id-ac_overview" target="id-ai_overview" xsi:type="Composition"/>
+    <relationship identifier="id-r27" source="id-ac_editor" target="id-ai_editor" xsi:type="Composition"/>
+    <relationship identifier="id-r28" source="id-ac_store" target="id-ai_store" xsi:type="Composition"/>
+    <relationship identifier="id-r29" source="id-ai_overview" target="id-ba_user" xsi:type="Serving"/>
+    <relationship identifier="id-r30" source="id-ai_editor" target="id-ba_user" xsi:type="Serving"/>
+    <relationship identifier="id-r31" source="id-ac_overview" target="id-ac_editor" xsi:type="Flow">
+      <name xml:lang="de">Navigation trip.html?id=&lt;id&gt;</name>
+    </relationship>
+    <relationship identifier="id-r32" source="id-as_persist" target="id-ac_overview" xsi:type="Serving"/>
+    <relationship identifier="id-r33" source="id-as_persist" target="id-ac_editor" xsi:type="Serving"/>
+    <relationship identifier="id-r34" source="id-as_offline" target="id-ac_pwa" xsi:type="Serving"/>
+    <relationship identifier="id-r35" source="id-ac_overview" target="id-af_list" xsi:type="Assignment"/>
+    <relationship identifier="id-r36" source="id-ac_overview" target="id-af_create" xsi:type="Assignment"/>
+    <relationship identifier="id-r37" source="id-ac_overview" target="id-af_delete" xsi:type="Assignment"/>
+    <relationship identifier="id-r38" source="id-ac_editor" target="id-af_edit" xsi:type="Assignment"/>
+    <relationship identifier="id-r39" source="id-ac_store" target="id-af_persist" xsi:type="Assignment"/>
+    <relationship identifier="id-r40" source="id-ac_sw" target="id-af_cache" xsi:type="Assignment"/>
+    <relationship identifier="id-r41" source="id-af_create" target="id-af_edit" xsi:type="Triggering"/>
+    <relationship identifier="id-r42" source="id-af_edit" target="id-af_persist" xsi:type="Triggering">
+      <name xml:lang="de">Speichern</name>
+    </relationship>
+    <relationship identifier="id-r43" source="id-af_list" target="id-as_manage" xsi:type="Realization"/>
+    <relationship identifier="id-r44" source="id-af_create" target="id-as_manage" xsi:type="Realization"/>
+    <relationship identifier="id-r45" source="id-af_delete" target="id-as_manage" xsi:type="Realization"/>
+    <relationship identifier="id-r46" source="id-af_edit" target="id-as_edit" xsi:type="Realization"/>
+    <relationship identifier="id-r47" source="id-af_persist" target="id-as_persist" xsi:type="Realization"/>
+    <relationship identifier="id-r48" source="id-af_cache" target="id-as_offline" xsi:type="Realization"/>
+    <relationship identifier="id-r49" source="id-ai_overview" target="id-as_manage" xsi:type="Assignment"/>
+    <relationship identifier="id-r50" source="id-ai_editor" target="id-as_edit" xsi:type="Assignment"/>
+    <relationship identifier="id-r51" source="id-ai_store" target="id-as_persist" xsi:type="Assignment"/>
+    <relationship identifier="id-r52" source="id-as_manage" target="id-bp_create" xsi:type="Serving"/>
+    <relationship identifier="id-r53" source="id-as_manage" target="id-bp_delete" xsi:type="Serving"/>
+    <relationship identifier="id-r54" source="id-as_edit" target="id-bp_edit" xsi:type="Serving"/>
+    <relationship identifier="id-r55" source="id-af_list" target="id-do_index" xsi:type="Access" accessType="Read"/>
+    <relationship identifier="id-r56" source="id-af_create" target="id-do_index" xsi:type="Access" accessType="Write"/>
+    <relationship identifier="id-r57" source="id-af_create" target="id-do_trip" xsi:type="Access" accessType="Write"/>
+    <relationship identifier="id-r58" source="id-af_delete" target="id-do_index" xsi:type="Access" accessType="Write"/>
+    <relationship identifier="id-r59" source="id-af_delete" target="id-do_trip" xsi:type="Access" accessType="Write"/>
+    <relationship identifier="id-r60" source="id-af_edit" target="id-do_trip" xsi:type="Access" accessType="Read"/>
+    <relationship identifier="id-r61" source="id-af_persist" target="id-do_trip" xsi:type="Access" accessType="Write"/>
+    <relationship identifier="id-r62" source="id-af_persist" target="id-do_index" xsi:type="Access" accessType="Write"/>
+    <relationship identifier="id-r63" source="id-do_index" target="id-bo_trip" xsi:type="Realization"/>
+    <relationship identifier="id-r64" source="id-do_trip" target="id-bo_trip" xsi:type="Realization"/>
+    <relationship identifier="id-r65" source="id-do_trip" target="id-bo_day" xsi:type="Realization"/>
+    <relationship identifier="id-r66" source="id-dv_client" target="id-ss_browser" xsi:type="Assignment"/>
+    <relationship identifier="id-r67" source="id-ss_browser" target="id-ts_localstorage" xsi:type="Realization"/>
+    <relationship identifier="id-r68" source="id-ss_browser" target="id-ts_cache" xsi:type="Realization"/>
+    <relationship identifier="id-r69" source="id-ss_browser" target="id-ts_runtime" xsi:type="Realization"/>
+    <relationship identifier="id-r70" source="id-ts_runtime" target="id-ac_pwa" xsi:type="Serving"/>
+    <relationship identifier="id-r71" source="id-ts_localstorage" target="id-ac_store" xsi:type="Serving"/>
+    <relationship identifier="id-r72" source="id-ts_cache" target="id-ac_sw" xsi:type="Serving"/>
+    <relationship identifier="id-r73" source="id-nd_web" target="id-ts_hosting" xsi:type="Realization"/>
+    <relationship identifier="id-r74" source="id-ts_hosting" target="id-ss_browser" xsi:type="Serving"/>
+    <relationship identifier="id-r75" source="id-cn_internet" target="id-dv_client" xsi:type="Association"/>
+    <relationship identifier="id-r76" source="id-cn_internet" target="id-nd_web" xsi:type="Association"/>
+    <relationship identifier="id-r77" source="id-nd_web" target="id-ar_index" xsi:type="Assignment"/>
+    <relationship identifier="id-r78" source="id-nd_web" target="id-ar_appjs" xsi:type="Assignment"/>
+    <relationship identifier="id-r79" source="id-nd_web" target="id-ar_trip" xsi:type="Assignment"/>
+    <relationship identifier="id-r80" source="id-nd_web" target="id-ar_tripjs" xsi:type="Assignment"/>
+    <relationship identifier="id-r81" source="id-nd_web" target="id-ar_storejs" xsi:type="Assignment"/>
+    <relationship identifier="id-r82" source="id-nd_web" target="id-ar_sw" xsi:type="Assignment"/>
+    <relationship identifier="id-r83" source="id-nd_web" target="id-ar_css" xsi:type="Assignment"/>
+    <relationship identifier="id-r84" source="id-nd_web" target="id-ar_manifest" xsi:type="Assignment"/>
+    <relationship identifier="id-r85" source="id-nd_web" target="id-ar_icons" xsi:type="Assignment"/>
+    <relationship identifier="id-r86" source="id-ar_index" target="id-ac_overview" xsi:type="Realization"/>
+    <relationship identifier="id-r87" source="id-ar_appjs" target="id-ac_overview" xsi:type="Realization"/>
+    <relationship identifier="id-r88" source="id-ar_trip" target="id-ac_editor" xsi:type="Realization"/>
+    <relationship identifier="id-r89" source="id-ar_tripjs" target="id-ac_editor" xsi:type="Realization"/>
+    <relationship identifier="id-r90" source="id-ar_storejs" target="id-ac_store" xsi:type="Realization"/>
+    <relationship identifier="id-r91" source="id-ar_sw" target="id-ac_sw" xsi:type="Realization"/>
+    <relationship identifier="id-r92" source="id-ar_css" target="id-ac_pwa" xsi:type="Realization"/>
+    <relationship identifier="id-r93" source="id-ar_manifest" target="id-ac_pwa" xsi:type="Realization"/>
+    <relationship identifier="id-r94" source="id-ar_icons" target="id-ac_pwa" xsi:type="Realization"/>
+    <relationship identifier="id-r95" source="id-ss_browser" target="id-ar_ls_index" xsi:type="Assignment"/>
+    <relationship identifier="id-r96" source="id-ss_browser" target="id-ar_ls_trip" xsi:type="Assignment"/>
+    <relationship identifier="id-r97" source="id-ar_ls_index" target="id-do_index" xsi:type="Realization"/>
+    <relationship identifier="id-r98" source="id-ar_ls_trip" target="id-do_trip" xsi:type="Realization"/>
+    <relationship identifier="id-r99" source="id-pl_ist" target="id-pl_ziel" xsi:type="Triggering"/>
+    <relationship identifier="id-r100" source="id-gap_backend" target="id-pl_ist" xsi:type="Association"/>
+    <relationship identifier="id-r101" source="id-gap_backend" target="id-pl_ziel" xsi:type="Association"/>
+    <relationship identifier="id-r102" source="id-pl_ist" target="id-ac_store" xsi:type="Aggregation"/>
+    <relationship identifier="id-r103" source="id-pl_ist" target="id-ts_localstorage" xsi:type="Aggregation"/>
+    <relationship identifier="id-r104" source="id-pl_ziel" target="id-ac_supa_adapter" xsi:type="Aggregation"/>
+    <relationship identifier="id-r105" source="id-pl_ziel" target="id-nd_supabase" xsi:type="Aggregation"/>
+    <relationship identifier="id-r106" source="id-wp_adapter" target="id-ac_supa_adapter" xsi:type="Realization"/>
+    <relationship identifier="id-r107" source="id-wp_adapter" target="id-pl_ziel" xsi:type="Realization"/>
+    <relationship identifier="id-r108" source="id-ac_supa_adapter" target="id-rq_swap" xsi:type="Realization"/>
+    <relationship identifier="id-r109" source="id-ac_supa_adapter" target="id-ai_store" xsi:type="Aggregation"/>
+    <relationship identifier="id-r110" source="id-nd_supabase" target="id-ac_supa_adapter" xsi:type="Serving"/>
+    <relationship identifier="id-r111" source="id-pl_ziel" target="id-g_plan" xsi:type="Influence">
+      <name xml:lang="de">+</name>
+    </relationship>
+  </relationships>
+  <organizations>
+    <item>
+      <label xml:lang="de">Business</label>
+      <item identifierRef="id-ba_user"/>
+      <item identifierRef="id-bs_plan"/>
+      <item identifierRef="id-bp_plan"/>
+      <item identifierRef="id-bp_create"/>
+      <item identifierRef="id-bp_edit"/>
+      <item identifierRef="id-bp_delete"/>
+      <item identifierRef="id-bo_trip"/>
+      <item identifierRef="id-bo_day"/>
+    </item>
+    <item>
+      <label xml:lang="de">Application</label>
+      <item identifierRef="id-ac_pwa"/>
+      <item identifierRef="id-ac_overview"/>
+      <item identifierRef="id-ac_editor"/>
+      <item identifierRef="id-ac_store"/>
+      <item identifierRef="id-ac_sw"/>
+      <item identifierRef="id-ai_overview"/>
+      <item identifierRef="id-ai_editor"/>
+      <item identifierRef="id-ai_store"/>
+      <item identifierRef="id-af_list"/>
+      <item identifierRef="id-af_create"/>
+      <item identifierRef="id-af_delete"/>
+      <item identifierRef="id-af_edit"/>
+      <item identifierRef="id-af_persist"/>
+      <item identifierRef="id-af_cache"/>
+      <item identifierRef="id-as_manage"/>
+      <item identifierRef="id-as_edit"/>
+      <item identifierRef="id-as_persist"/>
+      <item identifierRef="id-as_offline"/>
+      <item identifierRef="id-do_index"/>
+      <item identifierRef="id-do_trip"/>
+      <item identifierRef="id-ac_supa_adapter"/>
+    </item>
+    <item>
+      <label xml:lang="de">Technology &amp; Physical</label>
+      <item identifierRef="id-dv_client"/>
+      <item identifierRef="id-ss_browser"/>
+      <item identifierRef="id-ts_localstorage"/>
+      <item identifierRef="id-ts_cache"/>
+      <item identifierRef="id-ts_runtime"/>
+      <item identifierRef="id-nd_web"/>
+      <item identifierRef="id-ts_hosting"/>
+      <item identifierRef="id-cn_internet"/>
+      <item identifierRef="id-ar_index"/>
+      <item identifierRef="id-ar_appjs"/>
+      <item identifierRef="id-ar_trip"/>
+      <item identifierRef="id-ar_tripjs"/>
+      <item identifierRef="id-ar_storejs"/>
+      <item identifierRef="id-ar_sw"/>
+      <item identifierRef="id-ar_css"/>
+      <item identifierRef="id-ar_manifest"/>
+      <item identifierRef="id-ar_icons"/>
+      <item identifierRef="id-ar_ls_index"/>
+      <item identifierRef="id-ar_ls_trip"/>
+      <item identifierRef="id-nd_supabase"/>
+    </item>
+    <item>
+      <label xml:lang="de">Motivation</label>
+      <item identifierRef="id-st_user"/>
+      <item identifierRef="id-g_plan"/>
+      <item identifierRef="id-rq_offline"/>
+      <item identifierRef="id-rq_install"/>
+      <item identifierRef="id-rq_swap"/>
+      <item identifierRef="id-pr_nobuild"/>
+    </item>
+    <item>
+      <label xml:lang="de">Implementation &amp; Migration</label>
+      <item identifierRef="id-pl_ist"/>
+      <item identifierRef="id-pl_ziel"/>
+      <item identifierRef="id-gap_backend"/>
+      <item identifierRef="id-wp_adapter"/>
+    </item>
+    <item>
+      <label xml:lang="de">Relations</label>
+      <item identifierRef="id-r1"/>
+      <item identifierRef="id-r2"/>
+      <item identifierRef="id-r3"/>
+      <item identifierRef="id-r4"/>
+      <item identifierRef="id-r5"/>
+      <item identifierRef="id-r6"/>
+      <item identifierRef="id-r7"/>
+      <item identifierRef="id-r8"/>
+      <item identifierRef="id-r9"/>
+      <item identifierRef="id-r10"/>
+      <item identifierRef="id-r11"/>
+      <item identifierRef="id-r12"/>
+      <item identifierRef="id-r13"/>
+      <item identifierRef="id-r14"/>
+      <item identifierRef="id-r15"/>
+      <item identifierRef="id-r16"/>
+      <item identifierRef="id-r17"/>
+      <item identifierRef="id-r18"/>
+      <item identifierRef="id-r19"/>
+      <item identifierRef="id-r20"/>
+      <item identifierRef="id-r21"/>
+      <item identifierRef="id-r22"/>
+      <item identifierRef="id-r23"/>
+      <item identifierRef="id-r24"/>
+      <item identifierRef="id-r25"/>
+      <item identifierRef="id-r26"/>
+      <item identifierRef="id-r27"/>
+      <item identifierRef="id-r28"/>
+      <item identifierRef="id-r29"/>
+      <item identifierRef="id-r30"/>
+      <item identifierRef="id-r31"/>
+      <item identifierRef="id-r32"/>
+      <item identifierRef="id-r33"/>
+      <item identifierRef="id-r34"/>
+      <item identifierRef="id-r35"/>
+      <item identifierRef="id-r36"/>
+      <item identifierRef="id-r37"/>
+      <item identifierRef="id-r38"/>
+      <item identifierRef="id-r39"/>
+      <item identifierRef="id-r40"/>
+      <item identifierRef="id-r41"/>
+      <item identifierRef="id-r42"/>
+      <item identifierRef="id-r43"/>
+      <item identifierRef="id-r44"/>
+      <item identifierRef="id-r45"/>
+      <item identifierRef="id-r46"/>
+      <item identifierRef="id-r47"/>
+      <item identifierRef="id-r48"/>
+      <item identifierRef="id-r49"/>
+      <item identifierRef="id-r50"/>
+      <item identifierRef="id-r51"/>
+      <item identifierRef="id-r52"/>
+      <item identifierRef="id-r53"/>
+      <item identifierRef="id-r54"/>
+      <item identifierRef="id-r55"/>
+      <item identifierRef="id-r56"/>
+      <item identifierRef="id-r57"/>
+      <item identifierRef="id-r58"/>
+      <item identifierRef="id-r59"/>
+      <item identifierRef="id-r60"/>
+      <item identifierRef="id-r61"/>
+      <item identifierRef="id-r62"/>
+      <item identifierRef="id-r63"/>
+      <item identifierRef="id-r64"/>
+      <item identifierRef="id-r65"/>
+      <item identifierRef="id-r66"/>
+      <item identifierRef="id-r67"/>
+      <item identifierRef="id-r68"/>
+      <item identifierRef="id-r69"/>
+      <item identifierRef="id-r70"/>
+      <item identifierRef="id-r71"/>
+      <item identifierRef="id-r72"/>
+      <item identifierRef="id-r73"/>
+      <item identifierRef="id-r74"/>
+      <item identifierRef="id-r75"/>
+      <item identifierRef="id-r76"/>
+      <item identifierRef="id-r77"/>
+      <item identifierRef="id-r78"/>
+      <item identifierRef="id-r79"/>
+      <item identifierRef="id-r80"/>
+      <item identifierRef="id-r81"/>
+      <item identifierRef="id-r82"/>
+      <item identifierRef="id-r83"/>
+      <item identifierRef="id-r84"/>
+      <item identifierRef="id-r85"/>
+      <item identifierRef="id-r86"/>
+      <item identifierRef="id-r87"/>
+      <item identifierRef="id-r88"/>
+      <item identifierRef="id-r89"/>
+      <item identifierRef="id-r90"/>
+      <item identifierRef="id-r91"/>
+      <item identifierRef="id-r92"/>
+      <item identifierRef="id-r93"/>
+      <item identifierRef="id-r94"/>
+      <item identifierRef="id-r95"/>
+      <item identifierRef="id-r96"/>
+      <item identifierRef="id-r97"/>
+      <item identifierRef="id-r98"/>
+      <item identifierRef="id-r99"/>
+      <item identifierRef="id-r100"/>
+      <item identifierRef="id-r101"/>
+      <item identifierRef="id-r102"/>
+      <item identifierRef="id-r103"/>
+      <item identifierRef="id-r104"/>
+      <item identifierRef="id-r105"/>
+      <item identifierRef="id-r106"/>
+      <item identifierRef="id-r107"/>
+      <item identifierRef="id-r108"/>
+      <item identifierRef="id-r109"/>
+      <item identifierRef="id-r110"/>
+      <item identifierRef="id-r111"/>
+    </item>
+    <item>
+      <label xml:lang="de">Views</label>
+      <item identifierRef="id-v_layered"/>
+      <item identifierRef="id-v_app"/>
+      <item identifierRef="id-v_tech"/>
+      <item identifierRef="id-v_business"/>
+      <item identifierRef="id-v_motivation"/>
+      <item identifierRef="id-v_migration"/>
+    </item>
+  </organizations>
+  <propertyDefinitions>
+    <propertyDefinition identifier="pd-1" type="string">
+      <name xml:lang="de">Quellcode</name>
+    </propertyDefinition>
+    <propertyDefinition identifier="pd-2" type="string">
+      <name xml:lang="de">Speicherschluessel</name>
+    </propertyDefinition>
+    <propertyDefinition identifier="pd-3" type="string">
+      <name xml:lang="de">Status</name>
+    </propertyDefinition>
+  </propertyDefinitions>
+  <views>
+    <diagrams>
+      <view identifier="id-v_layered" xsi:type="Diagram">
+        <name xml:lang="de">Schichtenübersicht</name>
+        <documentation xml:lang="de">Überblick über alle Schichten der Reiseplaner-PWA vom Nutzer bis zur Technologie.</documentation>
+        <node identifier="id-v_layered-n1" xsi:type="Element" elementRef="id-ba_user" x="235" y="40" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n2" xsi:type="Element" elementRef="id-bs_plan" x="625" y="40" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n3" xsi:type="Element" elementRef="id-bp_create" x="40" y="140" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n4" xsi:type="Element" elementRef="id-bp_edit" x="235" y="140" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n5" xsi:type="Element" elementRef="id-bp_delete" x="430" y="140" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n6" xsi:type="Element" elementRef="id-bo_trip" x="820" y="140" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n7" xsi:type="Element" elementRef="id-as_manage" x="40" y="260" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n8" xsi:type="Element" elementRef="id-as_edit" x="235" y="260" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n9" xsi:type="Element" elementRef="id-as_offline" x="430" y="260" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n10" xsi:type="Element" elementRef="id-do_index" x="820" y="260" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n11" xsi:type="Element" elementRef="id-do_trip" x="1015" y="260" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n12" xsi:type="Element" elementRef="id-ac_overview" x="40" y="360" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n13" xsi:type="Element" elementRef="id-ac_editor" x="235" y="360" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n14" xsi:type="Element" elementRef="id-ac_sw" x="430" y="360" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n15" xsi:type="Element" elementRef="id-ac_store" x="625" y="360" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n16" xsi:type="Element" elementRef="id-ts_runtime" x="235" y="480" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n17" xsi:type="Element" elementRef="id-ts_cache" x="430" y="480" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n18" xsi:type="Element" elementRef="id-ts_localstorage" x="625" y="480" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n19" xsi:type="Element" elementRef="id-ts_hosting" x="1015" y="480" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n20" xsi:type="Element" elementRef="id-ss_browser" x="430" y="580" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n21" xsi:type="Element" elementRef="id-nd_web" x="1015" y="580" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n22" xsi:type="Element" elementRef="id-dv_client" x="430" y="680" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_layered-n23" xsi:type="Element" elementRef="id-cn_internet" x="820" y="680" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <connection identifier="id-v_layered-c1" xsi:type="Relationship" relationshipRef="id-r14" source="id-v_layered-n3" target="id-v_layered-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c2" xsi:type="Relationship" relationshipRef="id-r16" source="id-v_layered-n2" target="id-v_layered-n1">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c3" xsi:type="Relationship" relationshipRef="id-r18" source="id-v_layered-n3" target="id-v_layered-n6">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c4" xsi:type="Relationship" relationshipRef="id-r19" source="id-v_layered-n4" target="id-v_layered-n6">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c5" xsi:type="Relationship" relationshipRef="id-r21" source="id-v_layered-n5" target="id-v_layered-n6">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c6" xsi:type="Relationship" relationshipRef="id-r31" source="id-v_layered-n12" target="id-v_layered-n13">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c7" xsi:type="Relationship" relationshipRef="id-r52" source="id-v_layered-n7" target="id-v_layered-n3">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c8" xsi:type="Relationship" relationshipRef="id-r53" source="id-v_layered-n7" target="id-v_layered-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c9" xsi:type="Relationship" relationshipRef="id-r54" source="id-v_layered-n8" target="id-v_layered-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c10" xsi:type="Relationship" relationshipRef="id-r63" source="id-v_layered-n10" target="id-v_layered-n6">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c11" xsi:type="Relationship" relationshipRef="id-r64" source="id-v_layered-n11" target="id-v_layered-n6">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c12" xsi:type="Relationship" relationshipRef="id-r66" source="id-v_layered-n22" target="id-v_layered-n20">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c13" xsi:type="Relationship" relationshipRef="id-r67" source="id-v_layered-n20" target="id-v_layered-n18">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c14" xsi:type="Relationship" relationshipRef="id-r68" source="id-v_layered-n20" target="id-v_layered-n17">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c15" xsi:type="Relationship" relationshipRef="id-r69" source="id-v_layered-n20" target="id-v_layered-n16">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c16" xsi:type="Relationship" relationshipRef="id-r71" source="id-v_layered-n18" target="id-v_layered-n15">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c17" xsi:type="Relationship" relationshipRef="id-r72" source="id-v_layered-n17" target="id-v_layered-n14">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c18" xsi:type="Relationship" relationshipRef="id-r73" source="id-v_layered-n21" target="id-v_layered-n19">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c19" xsi:type="Relationship" relationshipRef="id-r74" source="id-v_layered-n19" target="id-v_layered-n20">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c20" xsi:type="Relationship" relationshipRef="id-r75" source="id-v_layered-n23" target="id-v_layered-n22">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_layered-c21" xsi:type="Relationship" relationshipRef="id-r76" source="id-v_layered-n23" target="id-v_layered-n21">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+      </view>
+      <view identifier="id-v_app" xsi:type="Diagram">
+        <name xml:lang="de">Anwendungsarchitektur</name>
+        <documentation xml:lang="de">Komponenten, Schnittstellen, Funktionen, Dienste und Datenobjekte der PWA.</documentation>
+        <node identifier="id-v_app-n1" xsi:type="Element" elementRef="id-ai_overview" x="40" y="40" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n2" xsi:type="Element" elementRef="id-ai_editor" x="235" y="40" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n3" xsi:type="Element" elementRef="id-ai_store" x="625" y="40" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n4" xsi:type="Element" elementRef="id-as_manage" x="40" y="140" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n5" xsi:type="Element" elementRef="id-as_edit" x="235" y="140" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n6" xsi:type="Element" elementRef="id-as_offline" x="430" y="140" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n7" xsi:type="Element" elementRef="id-as_persist" x="625" y="140" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n8" xsi:type="Element" elementRef="id-af_list" x="40" y="260" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n9" xsi:type="Element" elementRef="id-af_create" x="235" y="260" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n10" xsi:type="Element" elementRef="id-af_delete" x="430" y="260" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n11" xsi:type="Element" elementRef="id-af_edit" x="625" y="260" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n12" xsi:type="Element" elementRef="id-af_persist" x="820" y="260" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n13" xsi:type="Element" elementRef="id-af_cache" x="1015" y="260" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n14" xsi:type="Element" elementRef="id-ac_overview" x="40" y="380" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n15" xsi:type="Element" elementRef="id-ac_editor" x="430" y="380" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n16" xsi:type="Element" elementRef="id-ac_store" x="625" y="380" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n17" xsi:type="Element" elementRef="id-ac_sw" x="1015" y="380" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n18" xsi:type="Element" elementRef="id-ac_pwa" x="430" y="500" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n19" xsi:type="Element" elementRef="id-do_index" x="625" y="500" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_app-n20" xsi:type="Element" elementRef="id-do_trip" x="820" y="500" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <connection identifier="id-v_app-c1" xsi:type="Relationship" relationshipRef="id-r22" source="id-v_app-n18" target="id-v_app-n14">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c2" xsi:type="Relationship" relationshipRef="id-r23" source="id-v_app-n18" target="id-v_app-n15">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c3" xsi:type="Relationship" relationshipRef="id-r24" source="id-v_app-n18" target="id-v_app-n16">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c4" xsi:type="Relationship" relationshipRef="id-r25" source="id-v_app-n18" target="id-v_app-n17">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c5" xsi:type="Relationship" relationshipRef="id-r26" source="id-v_app-n14" target="id-v_app-n1">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c6" xsi:type="Relationship" relationshipRef="id-r27" source="id-v_app-n15" target="id-v_app-n2">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c7" xsi:type="Relationship" relationshipRef="id-r28" source="id-v_app-n16" target="id-v_app-n3">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c8" xsi:type="Relationship" relationshipRef="id-r31" source="id-v_app-n14" target="id-v_app-n15">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c9" xsi:type="Relationship" relationshipRef="id-r32" source="id-v_app-n7" target="id-v_app-n14">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c10" xsi:type="Relationship" relationshipRef="id-r33" source="id-v_app-n7" target="id-v_app-n15">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c11" xsi:type="Relationship" relationshipRef="id-r34" source="id-v_app-n6" target="id-v_app-n18">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c12" xsi:type="Relationship" relationshipRef="id-r35" source="id-v_app-n14" target="id-v_app-n8">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c13" xsi:type="Relationship" relationshipRef="id-r36" source="id-v_app-n14" target="id-v_app-n9">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c14" xsi:type="Relationship" relationshipRef="id-r37" source="id-v_app-n14" target="id-v_app-n10">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c15" xsi:type="Relationship" relationshipRef="id-r38" source="id-v_app-n15" target="id-v_app-n11">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c16" xsi:type="Relationship" relationshipRef="id-r39" source="id-v_app-n16" target="id-v_app-n12">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c17" xsi:type="Relationship" relationshipRef="id-r40" source="id-v_app-n17" target="id-v_app-n13">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c18" xsi:type="Relationship" relationshipRef="id-r41" source="id-v_app-n9" target="id-v_app-n11">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c19" xsi:type="Relationship" relationshipRef="id-r42" source="id-v_app-n11" target="id-v_app-n12">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c20" xsi:type="Relationship" relationshipRef="id-r43" source="id-v_app-n8" target="id-v_app-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c21" xsi:type="Relationship" relationshipRef="id-r44" source="id-v_app-n9" target="id-v_app-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c22" xsi:type="Relationship" relationshipRef="id-r45" source="id-v_app-n10" target="id-v_app-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c23" xsi:type="Relationship" relationshipRef="id-r46" source="id-v_app-n11" target="id-v_app-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c24" xsi:type="Relationship" relationshipRef="id-r47" source="id-v_app-n12" target="id-v_app-n7">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c25" xsi:type="Relationship" relationshipRef="id-r48" source="id-v_app-n13" target="id-v_app-n6">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c26" xsi:type="Relationship" relationshipRef="id-r49" source="id-v_app-n1" target="id-v_app-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c27" xsi:type="Relationship" relationshipRef="id-r50" source="id-v_app-n2" target="id-v_app-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c28" xsi:type="Relationship" relationshipRef="id-r51" source="id-v_app-n3" target="id-v_app-n7">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c29" xsi:type="Relationship" relationshipRef="id-r55" source="id-v_app-n8" target="id-v_app-n19">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c30" xsi:type="Relationship" relationshipRef="id-r56" source="id-v_app-n9" target="id-v_app-n19">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c31" xsi:type="Relationship" relationshipRef="id-r57" source="id-v_app-n9" target="id-v_app-n20">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c32" xsi:type="Relationship" relationshipRef="id-r58" source="id-v_app-n10" target="id-v_app-n19">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c33" xsi:type="Relationship" relationshipRef="id-r59" source="id-v_app-n10" target="id-v_app-n20">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c34" xsi:type="Relationship" relationshipRef="id-r60" source="id-v_app-n11" target="id-v_app-n20">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c35" xsi:type="Relationship" relationshipRef="id-r61" source="id-v_app-n12" target="id-v_app-n20">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_app-c36" xsi:type="Relationship" relationshipRef="id-r62" source="id-v_app-n12" target="id-v_app-n19">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+      </view>
+      <view identifier="id-v_tech" xsi:type="Diagram">
+        <name xml:lang="de">Technologie und Deployment</name>
+        <documentation xml:lang="de">Verteilung der Artefakte: statische Dateien vom Webserver, Ausführung und Datenhaltung im Browser des Endgeräts.</documentation>
+        <node identifier="id-v_tech-n1" xsi:type="Element" elementRef="id-ac_overview" x="40" y="40" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n2" xsi:type="Element" elementRef="id-ac_editor" x="235" y="40" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n3" xsi:type="Element" elementRef="id-ac_store" x="430" y="40" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n4" xsi:type="Element" elementRef="id-ac_sw" x="625" y="40" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n5" xsi:type="Element" elementRef="id-ac_pwa" x="820" y="40" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n6" xsi:type="Element" elementRef="id-do_index" x="1015" y="40" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n7" xsi:type="Element" elementRef="id-do_trip" x="1210" y="40" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n8" xsi:type="Element" elementRef="id-ar_index" x="40" y="180" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n9" xsi:type="Element" elementRef="id-ar_appjs" x="235" y="180" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n10" xsi:type="Element" elementRef="id-ar_trip" x="430" y="180" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n11" xsi:type="Element" elementRef="id-ar_tripjs" x="625" y="180" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n12" xsi:type="Element" elementRef="id-ar_storejs" x="820" y="180" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n13" xsi:type="Element" elementRef="id-ar_sw" x="1015" y="180" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n14" xsi:type="Element" elementRef="id-ar_css" x="1210" y="180" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n15" xsi:type="Element" elementRef="id-ar_manifest" x="40" y="280" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n16" xsi:type="Element" elementRef="id-ar_icons" x="235" y="280" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n17" xsi:type="Element" elementRef="id-ts_runtime" x="625" y="280" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n18" xsi:type="Element" elementRef="id-ts_localstorage" x="820" y="280" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n19" xsi:type="Element" elementRef="id-ar_ls_index" x="1015" y="280" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n20" xsi:type="Element" elementRef="id-ar_ls_trip" x="1210" y="280" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n21" xsi:type="Element" elementRef="id-nd_web" x="235" y="400" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n22" xsi:type="Element" elementRef="id-ts_hosting" x="430" y="400" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n23" xsi:type="Element" elementRef="id-ts_cache" x="625" y="400" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n24" xsi:type="Element" elementRef="id-ss_browser" x="820" y="400" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n25" xsi:type="Element" elementRef="id-cn_internet" x="430" y="520" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_tech-n26" xsi:type="Element" elementRef="id-dv_client" x="820" y="520" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <connection identifier="id-v_tech-c1" xsi:type="Relationship" relationshipRef="id-r22" source="id-v_tech-n5" target="id-v_tech-n1">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c2" xsi:type="Relationship" relationshipRef="id-r23" source="id-v_tech-n5" target="id-v_tech-n2">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c3" xsi:type="Relationship" relationshipRef="id-r24" source="id-v_tech-n5" target="id-v_tech-n3">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c4" xsi:type="Relationship" relationshipRef="id-r25" source="id-v_tech-n5" target="id-v_tech-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c5" xsi:type="Relationship" relationshipRef="id-r31" source="id-v_tech-n1" target="id-v_tech-n2">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c6" xsi:type="Relationship" relationshipRef="id-r66" source="id-v_tech-n26" target="id-v_tech-n24">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c7" xsi:type="Relationship" relationshipRef="id-r67" source="id-v_tech-n24" target="id-v_tech-n18">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c8" xsi:type="Relationship" relationshipRef="id-r68" source="id-v_tech-n24" target="id-v_tech-n23">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c9" xsi:type="Relationship" relationshipRef="id-r69" source="id-v_tech-n24" target="id-v_tech-n17">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c10" xsi:type="Relationship" relationshipRef="id-r70" source="id-v_tech-n17" target="id-v_tech-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c11" xsi:type="Relationship" relationshipRef="id-r71" source="id-v_tech-n18" target="id-v_tech-n3">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c12" xsi:type="Relationship" relationshipRef="id-r72" source="id-v_tech-n23" target="id-v_tech-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c13" xsi:type="Relationship" relationshipRef="id-r73" source="id-v_tech-n21" target="id-v_tech-n22">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c14" xsi:type="Relationship" relationshipRef="id-r74" source="id-v_tech-n22" target="id-v_tech-n24">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c15" xsi:type="Relationship" relationshipRef="id-r75" source="id-v_tech-n25" target="id-v_tech-n26">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c16" xsi:type="Relationship" relationshipRef="id-r76" source="id-v_tech-n25" target="id-v_tech-n21">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c17" xsi:type="Relationship" relationshipRef="id-r77" source="id-v_tech-n21" target="id-v_tech-n8">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c18" xsi:type="Relationship" relationshipRef="id-r78" source="id-v_tech-n21" target="id-v_tech-n9">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c19" xsi:type="Relationship" relationshipRef="id-r79" source="id-v_tech-n21" target="id-v_tech-n10">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c20" xsi:type="Relationship" relationshipRef="id-r80" source="id-v_tech-n21" target="id-v_tech-n11">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c21" xsi:type="Relationship" relationshipRef="id-r81" source="id-v_tech-n21" target="id-v_tech-n12">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c22" xsi:type="Relationship" relationshipRef="id-r82" source="id-v_tech-n21" target="id-v_tech-n13">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c23" xsi:type="Relationship" relationshipRef="id-r83" source="id-v_tech-n21" target="id-v_tech-n14">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c24" xsi:type="Relationship" relationshipRef="id-r84" source="id-v_tech-n21" target="id-v_tech-n15">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c25" xsi:type="Relationship" relationshipRef="id-r85" source="id-v_tech-n21" target="id-v_tech-n16">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c26" xsi:type="Relationship" relationshipRef="id-r86" source="id-v_tech-n8" target="id-v_tech-n1">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c27" xsi:type="Relationship" relationshipRef="id-r87" source="id-v_tech-n9" target="id-v_tech-n1">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c28" xsi:type="Relationship" relationshipRef="id-r88" source="id-v_tech-n10" target="id-v_tech-n2">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c29" xsi:type="Relationship" relationshipRef="id-r89" source="id-v_tech-n11" target="id-v_tech-n2">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c30" xsi:type="Relationship" relationshipRef="id-r90" source="id-v_tech-n12" target="id-v_tech-n3">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c31" xsi:type="Relationship" relationshipRef="id-r91" source="id-v_tech-n13" target="id-v_tech-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c32" xsi:type="Relationship" relationshipRef="id-r92" source="id-v_tech-n14" target="id-v_tech-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c33" xsi:type="Relationship" relationshipRef="id-r93" source="id-v_tech-n15" target="id-v_tech-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c34" xsi:type="Relationship" relationshipRef="id-r94" source="id-v_tech-n16" target="id-v_tech-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c35" xsi:type="Relationship" relationshipRef="id-r95" source="id-v_tech-n24" target="id-v_tech-n19">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c36" xsi:type="Relationship" relationshipRef="id-r96" source="id-v_tech-n24" target="id-v_tech-n20">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c37" xsi:type="Relationship" relationshipRef="id-r97" source="id-v_tech-n19" target="id-v_tech-n6">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_tech-c38" xsi:type="Relationship" relationshipRef="id-r98" source="id-v_tech-n20" target="id-v_tech-n7">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+      </view>
+      <view identifier="id-v_business" xsi:type="Diagram">
+        <name xml:lang="de">Geschäftssicht</name>
+        <documentation xml:lang="de">Reiseplanung aus Sicht der reisenden Person und unterstützende Anwendungsdienste.</documentation>
+        <node identifier="id-v_business-n1" xsi:type="Element" elementRef="id-ba_user" x="235" y="40" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_business-n2" xsi:type="Element" elementRef="id-bs_plan" x="430" y="40" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_business-n3" xsi:type="Element" elementRef="id-bp_plan" x="235" y="150" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_business-n4" xsi:type="Element" elementRef="id-bp_create" x="40" y="260" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_business-n5" xsi:type="Element" elementRef="id-bp_edit" x="235" y="260" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_business-n6" xsi:type="Element" elementRef="id-bp_delete" x="430" y="260" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_business-n7" xsi:type="Element" elementRef="id-bo_trip" x="625" y="260" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_business-n8" xsi:type="Element" elementRef="id-as_manage" x="40" y="380" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_business-n9" xsi:type="Element" elementRef="id-as_edit" x="235" y="380" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_business-n10" xsi:type="Element" elementRef="id-bo_day" x="625" y="380" w="170" h="60">
+          <style>
+            <fillColor r="255" g="255" b="181" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <connection identifier="id-v_business-c1" xsi:type="Relationship" relationshipRef="id-r10" source="id-v_business-n1" target="id-v_business-n3">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c2" xsi:type="Relationship" relationshipRef="id-r11" source="id-v_business-n3" target="id-v_business-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c3" xsi:type="Relationship" relationshipRef="id-r12" source="id-v_business-n3" target="id-v_business-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c4" xsi:type="Relationship" relationshipRef="id-r13" source="id-v_business-n3" target="id-v_business-n6">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c5" xsi:type="Relationship" relationshipRef="id-r14" source="id-v_business-n4" target="id-v_business-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c6" xsi:type="Relationship" relationshipRef="id-r15" source="id-v_business-n3" target="id-v_business-n2">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c7" xsi:type="Relationship" relationshipRef="id-r16" source="id-v_business-n2" target="id-v_business-n1">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c8" xsi:type="Relationship" relationshipRef="id-r17" source="id-v_business-n7" target="id-v_business-n10">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c9" xsi:type="Relationship" relationshipRef="id-r18" source="id-v_business-n4" target="id-v_business-n7">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c10" xsi:type="Relationship" relationshipRef="id-r19" source="id-v_business-n5" target="id-v_business-n7">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c11" xsi:type="Relationship" relationshipRef="id-r20" source="id-v_business-n5" target="id-v_business-n10">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c12" xsi:type="Relationship" relationshipRef="id-r21" source="id-v_business-n6" target="id-v_business-n7">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c13" xsi:type="Relationship" relationshipRef="id-r52" source="id-v_business-n8" target="id-v_business-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c14" xsi:type="Relationship" relationshipRef="id-r53" source="id-v_business-n8" target="id-v_business-n6">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_business-c15" xsi:type="Relationship" relationshipRef="id-r54" source="id-v_business-n9" target="id-v_business-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+      </view>
+      <view identifier="id-v_motivation" xsi:type="Diagram">
+        <name xml:lang="de">Motivation</name>
+        <documentation xml:lang="de">Ziele, Anforderungen und Prinzipien sowie ihre Realisierung.</documentation>
+        <node identifier="id-v_motivation-n1" xsi:type="Element" elementRef="id-st_user" x="235" y="40" w="170" h="60">
+          <style>
+            <fillColor r="204" g="204" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_motivation-n2" xsi:type="Element" elementRef="id-g_plan" x="430" y="40" w="170" h="60">
+          <style>
+            <fillColor r="204" g="204" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_motivation-n3" xsi:type="Element" elementRef="id-rq_offline" x="40" y="160" w="170" h="60">
+          <style>
+            <fillColor r="204" g="204" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_motivation-n4" xsi:type="Element" elementRef="id-rq_install" x="235" y="160" w="170" h="60">
+          <style>
+            <fillColor r="204" g="204" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_motivation-n5" xsi:type="Element" elementRef="id-rq_swap" x="430" y="160" w="170" h="60">
+          <style>
+            <fillColor r="204" g="204" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_motivation-n6" xsi:type="Element" elementRef="id-pr_nobuild" x="625" y="160" w="170" h="60">
+          <style>
+            <fillColor r="204" g="204" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_motivation-n7" xsi:type="Element" elementRef="id-ac_sw" x="40" y="280" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_motivation-n8" xsi:type="Element" elementRef="id-ar_manifest" x="235" y="280" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_motivation-n9" xsi:type="Element" elementRef="id-ac_store" x="430" y="280" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_motivation-n10" xsi:type="Element" elementRef="id-ac_pwa" x="625" y="280" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <connection identifier="id-v_motivation-c1" xsi:type="Relationship" relationshipRef="id-r1" source="id-v_motivation-n1" target="id-v_motivation-n2">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_motivation-c2" xsi:type="Relationship" relationshipRef="id-r2" source="id-v_motivation-n3" target="id-v_motivation-n2">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_motivation-c3" xsi:type="Relationship" relationshipRef="id-r3" source="id-v_motivation-n4" target="id-v_motivation-n2">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_motivation-c4" xsi:type="Relationship" relationshipRef="id-r4" source="id-v_motivation-n5" target="id-v_motivation-n2">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_motivation-c5" xsi:type="Relationship" relationshipRef="id-r5" source="id-v_motivation-n7" target="id-v_motivation-n3">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_motivation-c6" xsi:type="Relationship" relationshipRef="id-r6" source="id-v_motivation-n8" target="id-v_motivation-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_motivation-c7" xsi:type="Relationship" relationshipRef="id-r7" source="id-v_motivation-n9" target="id-v_motivation-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_motivation-c8" xsi:type="Relationship" relationshipRef="id-r8" source="id-v_motivation-n10" target="id-v_motivation-n6">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_motivation-c9" xsi:type="Relationship" relationshipRef="id-r24" source="id-v_motivation-n10" target="id-v_motivation-n9">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_motivation-c10" xsi:type="Relationship" relationshipRef="id-r25" source="id-v_motivation-n10" target="id-v_motivation-n7">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_motivation-c11" xsi:type="Relationship" relationshipRef="id-r93" source="id-v_motivation-n8" target="id-v_motivation-n10">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+      </view>
+      <view identifier="id-v_migration" xsi:type="Diagram">
+        <name xml:lang="de">Migration zu Supabase</name>
+        <documentation xml:lang="de">Geplante Ablösung der localStorage-Datenschicht durch einen Supabase-Adapter mit identischer Store-API.</documentation>
+        <node identifier="id-v_migration-n1" xsi:type="Element" elementRef="id-pl_ist" x="40" y="40" w="170" h="60">
+          <style>
+            <fillColor r="224" g="255" b="224" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_migration-n2" xsi:type="Element" elementRef="id-gap_backend" x="235" y="40" w="170" h="60">
+          <style>
+            <fillColor r="255" g="224" b="224" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_migration-n3" xsi:type="Element" elementRef="id-pl_ziel" x="430" y="40" w="170" h="60">
+          <style>
+            <fillColor r="224" g="255" b="224" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_migration-n4" xsi:type="Element" elementRef="id-g_plan" x="625" y="40" w="170" h="60">
+          <style>
+            <fillColor r="204" g="204" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_migration-n5" xsi:type="Element" elementRef="id-ac_store" x="40" y="160" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_migration-n6" xsi:type="Element" elementRef="id-ai_store" x="235" y="160" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_migration-n7" xsi:type="Element" elementRef="id-ac_supa_adapter" x="430" y="160" w="170" h="60">
+          <style>
+            <fillColor r="181" g="255" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_migration-n8" xsi:type="Element" elementRef="id-wp_adapter" x="625" y="160" w="170" h="60">
+          <style>
+            <fillColor r="255" g="224" b="224" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_migration-n9" xsi:type="Element" elementRef="id-ts_localstorage" x="40" y="280" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_migration-n10" xsi:type="Element" elementRef="id-nd_supabase" x="430" y="280" w="170" h="60">
+          <style>
+            <fillColor r="201" g="231" b="183" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <node identifier="id-v_migration-n11" xsi:type="Element" elementRef="id-rq_swap" x="625" y="280" w="170" h="60">
+          <style>
+            <fillColor r="204" g="204" b="255" a="100"/>
+            <lineColor r="92" g="92" b="92" a="100"/>
+            <font name="Segoe UI" size="9">
+              <color r="0" g="0" b="0"/>
+            </font>
+          </style>
+        </node>
+        <connection identifier="id-v_migration-c1" xsi:type="Relationship" relationshipRef="id-r4" source="id-v_migration-n11" target="id-v_migration-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c2" xsi:type="Relationship" relationshipRef="id-r7" source="id-v_migration-n5" target="id-v_migration-n11">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c3" xsi:type="Relationship" relationshipRef="id-r28" source="id-v_migration-n5" target="id-v_migration-n6">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c4" xsi:type="Relationship" relationshipRef="id-r71" source="id-v_migration-n9" target="id-v_migration-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c5" xsi:type="Relationship" relationshipRef="id-r99" source="id-v_migration-n1" target="id-v_migration-n3">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c6" xsi:type="Relationship" relationshipRef="id-r100" source="id-v_migration-n2" target="id-v_migration-n1">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c7" xsi:type="Relationship" relationshipRef="id-r101" source="id-v_migration-n2" target="id-v_migration-n3">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c8" xsi:type="Relationship" relationshipRef="id-r102" source="id-v_migration-n1" target="id-v_migration-n5">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c9" xsi:type="Relationship" relationshipRef="id-r103" source="id-v_migration-n1" target="id-v_migration-n9">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c10" xsi:type="Relationship" relationshipRef="id-r104" source="id-v_migration-n3" target="id-v_migration-n7">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c11" xsi:type="Relationship" relationshipRef="id-r105" source="id-v_migration-n3" target="id-v_migration-n10">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c12" xsi:type="Relationship" relationshipRef="id-r106" source="id-v_migration-n8" target="id-v_migration-n7">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c13" xsi:type="Relationship" relationshipRef="id-r107" source="id-v_migration-n8" target="id-v_migration-n3">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c14" xsi:type="Relationship" relationshipRef="id-r108" source="id-v_migration-n7" target="id-v_migration-n11">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c15" xsi:type="Relationship" relationshipRef="id-r109" source="id-v_migration-n7" target="id-v_migration-n6">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c16" xsi:type="Relationship" relationshipRef="id-r110" source="id-v_migration-n10" target="id-v_migration-n7">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+        <connection identifier="id-v_migration-c17" xsi:type="Relationship" relationshipRef="id-r111" source="id-v_migration-n3" target="id-v_migration-n4">
+          <style>
+            <lineColor r="0" g="0" b="0"/>
+          </style>
+        </connection>
+      </view>
+    </diagrams>
+  </views>
+</model>
