@@ -338,4 +338,4 @@ async function init() {
   render();
 }
 
-init();
+Auth.ready.then(init);

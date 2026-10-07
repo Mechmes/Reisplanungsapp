@@ -1,82 +1,221 @@
-// Einfacher Passwortschutz (Variante 1: Frontend-Gate, keine echte Sicherheit,
-// nur um Zufallsbesucher fernzuhalten — Supabase-Daten sind weiterhin per
-// API-Key erreichbar, siehe MEMORY.md).
+// Login über Supabase Auth (E-Mail + Passwort). Ohne gültige Sitzung zeigt
+// die App nur den Anmeldeschirm; die Datenbank (RLS, siehe
+// supabase_setup_auth_dev.sql) liefert ohne Anmeldung und ohne Eintrag in
+// app_users ohnehin keine Daten. Benutzer werden in Supabase angelegt, es
+// gibt keine Selbst-Registrierung in der App.
 //
-// Das aktuelle Passwort liegt in Supabase (Tabelle app_settings/app_settings_dev,
-// siehe store.js: Store.getPassword/setPassword), damit es über
-// "Passwort ändern" in der App geändert werden kann, ohne Code anzufassen.
-// FALLBACK_PASSWORD greift nur, wenn Supabase gerade nicht erreichbar ist.
-(function () {
-  var STORAGE_KEY = 'reiseplaner_unlocked';
-  var FALLBACK_PASSWORD = 'reise2027';
+// Spricht die Auth-REST-API direkt an (kein supabase-js), analog zu store.js.
+// Die Sitzung (Access- + Refresh-Token) liegt in localStorage, damit man auf
+// einem Gerät angemeldet bleibt; der Access-Token wird bei Bedarf erneuert.
+const Auth = (function () {
+  const SESSION_KEY = 'reiseplaner_session';
 
-  if (localStorage.getItem(STORAGE_KEY) === 'yes') return;
+  // Überbleibsel des alten Passwortschirms entfernen.
+  localStorage.removeItem('reiseplaner_unlocked');
 
-  document.documentElement.style.visibility = 'hidden';
+  let session = loadSession();
+  let refreshing = null;
 
-  async function currentPassword() {
+  function loadSession() {
     try {
-      const p = await Store.getPassword();
-      return p || FALLBACK_PASSWORD;
+      return JSON.parse(localStorage.getItem(SESSION_KEY));
     } catch (e) {
-      return FALLBACK_PASSWORD;
+      return null;
     }
   }
 
-  function showGate() {
-    document.documentElement.style.visibility = '';
+  function setSession(data) {
+    session = {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at: data.expires_at || Math.floor(Date.now() / 1000) + data.expires_in,
+      email: data.user ? data.user.email : session && session.email
+    };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  }
 
-    var overlay = document.createElement('div');
-    overlay.id = 'authGate';
-    overlay.innerHTML =
-      '<div class="auth-box">' +
-        '<h1>Reiseplaner</h1>' +
-        '<p>Bitte Passwort eingeben</p>' +
-        '<input type="password" id="authInput" placeholder="Passwort" autocomplete="current-password">' +
-        '<p id="authError" class="auth-error" hidden>Falsches Passwort</p>' +
-        '<button id="authSubmit" class="primary">Weiter</button>' +
-      '</div>';
-    document.body.appendChild(overlay);
+  function clearSession() {
+    session = null;
+    localStorage.removeItem(SESSION_KEY);
+  }
 
-    var input = document.getElementById('authInput');
-    var error = document.getElementById('authError');
+  async function authFetch(path, { method = 'POST', body, token } = {}) {
+    const headers = { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = 'Bearer ' + token;
+    const res = await fetch(SUPABASE_URL + '/auth/v1/' + path, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined
+    });
+    const text = await res.text().catch(() => '');
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch (e) {
+      data = null;
+    }
+    if (!res.ok) {
+      const err = new Error((data && (data.msg || data.error_description || data.message)) || 'Auth-Fehler ' + res.status);
+      err.status = res.status;
+      err.code = data && (data.error_code || data.error);
+      throw err;
+    }
+    return data;
+  }
 
-    async function tryUnlock() {
-      var pw = await currentPassword();
-      if (input.value === pw) {
-        localStorage.setItem(STORAGE_KEY, 'yes');
-        overlay.remove();
-      } else {
-        error.hidden = false;
-        input.value = '';
-        input.focus();
+  function signInRequest(email, password) {
+    return authFetch('token?grant_type=password', { body: { email, password } });
+  }
+
+  async function refresh() {
+    if (!refreshing) {
+      refreshing = authFetch('token?grant_type=refresh_token', {
+        body: { refresh_token: session.refresh_token }
+      })
+        .then(setSession)
+        .finally(() => {
+          refreshing = null;
+        });
+    }
+    return refreshing;
+  }
+
+  // Sitzung ungültig (abgelaufen, widerrufen, Benutzer gelöscht): zurück
+  // zum Anmeldeschirm.
+  function expire() {
+    clearSession();
+    window.location.reload();
+  }
+
+  async function getAccessToken() {
+    if (!session) {
+      expire();
+      throw new Error('Nicht angemeldet');
+    }
+    if (session.expires_at - 60 < Date.now() / 1000) {
+      try {
+        await refresh();
+      } catch (e) {
+        if (e.status) expire();
+        throw e;
       }
     }
+    return session.access_token;
+  }
 
-    document.getElementById('authSubmit').addEventListener('click', tryUnlock);
-    input.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') tryUnlock();
+  // Ist der angemeldete Benutzer in app_users freigeschaltet?
+  async function isMember(token) {
+    const res = await fetch(SUPABASE_URL + '/rest/v1/app_users?select=user_id', {
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + token }
     });
-    input.focus();
+    if (!res.ok) throw new Error('Supabase-Fehler ' + res.status);
+    const rows = await res.json();
+    return rows.length > 0;
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', showGate);
-  } else {
-    showGate();
+  async function signOut() {
+    const token = session && session.access_token;
+    clearSession();
+    if (token) {
+      await authFetch('logout', { token }).catch(() => {});
+    }
+    window.location.href = 'index.html';
   }
+
+  async function changePassword(currentPassword, newPassword) {
+    if (!newPassword || newPassword.length < 8) {
+      return { ok: false, error: 'too_short' };
+    }
+    // Aktuelles Passwort durch erneutes Anmelden prüfen; die frische Sitzung
+    // erfüllt zugleich Supabases Anforderung einer kürzlichen Anmeldung.
+    try {
+      setSession(await signInRequest(session.email, currentPassword));
+    } catch (e) {
+      if (e.status === 400) return { ok: false, error: 'wrong_password' };
+      throw e;
+    }
+    try {
+      await authFetch('user', { method: 'PUT', token: session.access_token, body: { password: newPassword } });
+    } catch (e) {
+      if (e.code === 'same_password') return { ok: false, error: 'same_password' };
+      if (e.code === 'weak_password') return { ok: false, error: 'weak_password' };
+      throw e;
+    }
+    return { ok: true };
+  }
+
+  function showGate(onSuccess) {
+    const overlay = document.createElement('div');
+    overlay.id = 'authGate';
+    overlay.innerHTML =
+      '<form class="auth-box" novalidate>' +
+        '<h1>Reiseplaner</h1>' +
+        '<p>Bitte anmelden</p>' +
+        '<input type="email" id="authEmail" placeholder="E-Mail" autocomplete="username" required>' +
+        '<input type="password" id="authInput" placeholder="Passwort" autocomplete="current-password" required>' +
+        '<p id="authError" class="auth-error" hidden></p>' +
+        '<button type="submit" id="authSubmit" class="primary">Anmelden</button>' +
+      '</form>';
+    document.body.appendChild(overlay);
+    document.documentElement.style.visibility = '';
+
+    const form = overlay.querySelector('form');
+    const emailInput = document.getElementById('authEmail');
+    const pwInput = document.getElementById('authInput');
+    const error = document.getElementById('authError');
+    const submit = document.getElementById('authSubmit');
+
+    function showError(msg) {
+      error.textContent = msg;
+      error.hidden = false;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      error.hidden = true;
+      submit.disabled = true;
+      try {
+        const data = await signInRequest(emailInput.value.trim(), pwInput.value);
+        if (!(await isMember(data.access_token))) {
+          await authFetch('logout', { token: data.access_token }).catch(() => {});
+          showError('Dieses Konto ist für den Reiseplaner nicht freigeschaltet.');
+          return;
+        }
+        setSession(data);
+        overlay.remove();
+        onSuccess();
+      } catch (err) {
+        pwInput.value = '';
+        showError(err.status === 400 ? 'E-Mail oder Passwort falsch.' : 'Anmeldung fehlgeschlagen: ' + err.message);
+        pwInput.focus();
+      } finally {
+        submit.disabled = false;
+      }
+    });
+    emailInput.focus();
+  }
+
+  // Wird erfüllt, sobald eine Sitzung besteht. app.js/trip.js laden ihre
+  // Daten erst danach.
+  const ready = new Promise((resolve) => {
+    if (session) {
+      resolve();
+      return;
+    }
+    document.documentElement.style.visibility = 'hidden';
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => showGate(resolve));
+    } else {
+      showGate(resolve);
+    }
+  });
+
+  return {
+    ready,
+    getAccessToken,
+    expire,
+    signOut,
+    changePassword,
+    email: () => (session ? session.email : '')
+  };
 })();
-
-// Wird von der Passwort-ändern-UI (app.js) aufgerufen.
-async function changeAppPassword(oldPassword, newPassword) {
-  const current = await Store.getPassword();
-  const effectiveCurrent = current || 'reise2027';
-  if (oldPassword !== effectiveCurrent) {
-    return { ok: false, error: 'wrong_password' };
-  }
-  if (!newPassword || newPassword.length < 4) {
-    return { ok: false, error: 'too_short' };
-  }
-  await Store.setPassword(newPassword);
-  return { ok: true };
-}

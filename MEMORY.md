@@ -26,31 +26,26 @@
 - Installierbar auf iPhone/iPad: Safari → Teilen-Symbol → "Zum
   Home-Bildschirm hinzufügen" (läuft danach im Vollbild wie eine native
   App)
-- **Passwortschirm beim Öffnen** (`auth.js`, geladen nach `store.js` und
-  vor `app.js`/`trip.js` in `index.html`/`trip.html`): Passwort liegt in
-  Supabase (Tabelle `app_settings`/`app_settings_dev`, Zeile
-  `key='password'`; Zugriff über `Store.getPassword()`/
-  `Store.setPassword()` in `store.js`). Eingabe wird nach Erfolg in
-  `localStorage` (`reiseplaner_unlocked`) gemerkt, danach kein erneutes
-  Abfragen auf diesem Gerät. `FALLBACK_PASSWORD` in `auth.js`
-  (`reise2027`) greift nur, wenn Supabase gerade nicht erreichbar ist.
-  **Nur Sichtschutz, keine echte Sicherheit** — die Supabase-Tabellen
-  bleiben über den im Frontend sichtbaren API-Key weiterhin direkt les-
-  und schreibbar, unabhängig vom Passwort (siehe Backend-Abschnitt).
-  Reicht, um Zufallsbesucher/Suchmaschinen fernzuhalten, nicht um die
-  Reisedaten wirklich abzusichern.
-- **Passwort ändern in der App**: Zahnrad-Icon (⚙) oben rechts in der
-  Übersicht (`index.html`, `#settingsBtn`) öffnet ein Modal
-  (`#passwordModal`), das aktuelles + neues Passwort abfragt
-  (`changeAppPassword()` in `auth.js`, Logik in `app.js`). Ändert die
-  Zeile in Supabase — gilt sofort für alle, die sich danach neu
-  einloggen. Geräte, die bereits entsperrt sind (`localStorage`-Flag
-  gesetzt), bleiben es trotz Passwortänderung — es gibt keinen
-  Fern-Logout.
-- Einmalig nötig, bevor das nutzbar ist: SQL aus
-  `supabase_setup_app_settings.sql` im Supabase SQL-Editor ausführen
-  (legt `app_settings` + `app_settings_dev` an, Startpasswort
-  `reise2027`).
+- **Login mit Benutzerkonto (nur Dev-Umgebung, Produktion noch alter
+  Passwortschirm)** (`auth.js`, geladen nach `store.js` und vor
+  `app.js`/`trip.js`): Anmeldung per E-Mail + Passwort über die
+  Supabase-Auth-REST-API (kein supabase-js). Sitzung (Access-/Refresh-
+  Token) in `localStorage` (`reiseplaner_session`), Token wird bei Bedarf
+  erneuert. `app.js`/`trip.js` laden Daten erst nach `Auth.ready`;
+  `store.js` schickt den Benutzer-Token statt des Publishable Keys als
+  `Authorization`. Zahnrad (⚙) öffnet "Konto": angemeldete E-Mail,
+  Passwort ändern (`Auth.changePassword`, prüft altes Passwort durch
+  erneute Anmeldung), Abmelden.
+- **Zugriff in der Datenbank** (`supabase_setup_auth_dev.sql`): `trips_dev`
+  nur für angemeldete Benutzer, die in `app_users` freigeschaltet sind;
+  `anon` hat keine Rechte mehr. `app_settings_dev` (altes Klartext-
+  Passwort) ist gesperrt.
+- **Neuen Benutzer anlegen:** Supabase-Dashboard → Authentication → Users
+  → "Add user" (E-Mail + Passwort, "Auto Confirm User"), danach im
+  SQL-Editor freischalten:
+  `insert into app_users (user_id) select id from auth.users where email = '...';`
+  Selbst-Registrierung in Supabase abschalten (Authentication → Sign In /
+  Providers → "Allow new users to sign up" aus).
 - **CSV-Export einer Reise** (`trip.html`/`trip.js`): Button "⤓ CSV"
   oben rechts in der Reise-Detailansicht. Baut clientseitig eine CSV
   (Spalten Tag/Datum/Titel/Hotel/Beschreibung, Semikolon-getrennt, mit
