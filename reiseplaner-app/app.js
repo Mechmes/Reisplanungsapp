@@ -20,6 +20,8 @@ const $passwordError = document.getElementById('passwordError');
 const $passwordSuccess = document.getElementById('passwordSuccess');
 const $cancelPassword = document.getElementById('cancelPassword');
 const $confirmPassword = document.getElementById('confirmPassword');
+const $accountEmail = document.getElementById('accountEmail');
+const $logoutBtn = document.getElementById('logoutBtn');
 
 let tripPendingDelete = null;
 
@@ -144,6 +146,7 @@ function openPasswordModal() {
   $newPasswordRepeat.value = '';
   $passwordError.hidden = true;
   $passwordSuccess.hidden = true;
+  $accountEmail.textContent = Auth.email();
   $passwordModal.hidden = false;
   setTimeout(() => $oldPassword.focus(), 50);
 }
@@ -154,6 +157,7 @@ function closePasswordModal() {
 
 $settingsBtn.addEventListener('click', openPasswordModal);
 $cancelPassword.addEventListener('click', closePasswordModal);
+$logoutBtn.addEventListener('click', () => Auth.signOut());
 $passwordModal.addEventListener('click', (e) => {
   if (e.target === $passwordModal) closePasswordModal();
 });
@@ -170,17 +174,19 @@ $confirmPassword.addEventListener('click', async () => {
 
   $confirmPassword.disabled = true;
   try {
-    const result = await changeAppPassword($oldPassword.value, $newPassword.value);
+    const result = await Auth.changePassword($oldPassword.value, $newPassword.value);
     if (result.ok) {
       $passwordSuccess.hidden = false;
       $oldPassword.value = '';
       $newPassword.value = '';
       $newPasswordRepeat.value = '';
     } else {
-      $passwordError.textContent =
-        result.error === 'too_short'
-          ? 'Neues Passwort muss mindestens 4 Zeichen haben.'
-          : 'Aktuelles Passwort ist falsch.';
+      $passwordError.textContent = {
+        too_short: 'Neues Passwort muss mindestens 8 Zeichen haben.',
+        same_password: 'Das neue Passwort muss sich vom aktuellen unterscheiden.',
+        weak_password: 'Das neue Passwort ist zu schwach.',
+        wrong_password: 'Aktuelles Passwort ist falsch.'
+      }[result.error];
       $passwordError.hidden = false;
     }
   } catch (e) {
@@ -197,4 +203,4 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-render();
+Auth.ready.then(render);
